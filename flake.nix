@@ -3,15 +3,23 @@
 
   inputs = {
     nixpkgs.url = "nixpkgs";
+    opam-nix.url = "github:tweag/opam-nix";
+    opam-repository.url = "github:ocaml/opam-repository";
+    opam-repository.flake = false;
+    opam-coq-repository.url = "github:coq/opam-coq-archive";
+    opam-coq-repository.flake = false;
+    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
   };
 
-  outputs = {nixpkgs, ...}: let
+  outputs = {nixpkgs, ...}@inputs: let
     system = "x86_64-linux";
+    codium_settings = ./codium-settings.json;
   in {
     devShells."${system}".default = let
       pkgs = import nixpkgs {
         inherit system;
       };
+      opam-nix = inputs.opam-nix.lib.${system};
       grackle = pkgs.buildGoModule {
         name = "grackle";
         src = pkgs.fetchFromGitHub {
@@ -33,11 +41,34 @@
         };
         vendorHash = "sha256-HCJ8v3TSv4UrkOsRuENWVz5Z7zQ1UsOygx0Mo7MELzY=";
       };
+      repos = [ "${inputs.opam-repository}" "${inputs.opam-coq-repository}" ];
+      scope = opam-nix.queryToScope { inherit repos; } ({ ocaml-base-compiler = "*"; "coq" = "8.20.1"; vscoq-language-server = "*"; });
+
+      makeSettingsDir = pkgs.writeShellScript "mkSettingsDir" ''
+        DIR=$(mktemp -d)
+        mkdir $DIR/User
+        cp ${codium_settings} $DIR/User/settings.json
+        echo $DIR
+      '';
+
+      vscode = with pkgs; (vscode-with-extensions.override {
+        vscode = vscodium.override { commandLineArgs = "--disable-workspace-trust --user-data-dir $(${makeSettingsDir})"; };
+        vscodeExtensions = with inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace; [
+          maximedenes.vscoq
+          leanprover.lean4
+        ];
+      });
+      
     in
       pkgs.mkShell {
         packages = [
           # coq deps
-          pkgs.coq
+          scope.coq
+          scope.vscoq-language-server
+
+          vscode
+
+          pkgs.python3
 
           pkgs.go
           grackle
