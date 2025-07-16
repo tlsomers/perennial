@@ -3,8 +3,12 @@
 
   inputs = {
     nixpkgs.url = "nixpkgs";
-    flake-utils.url = "github:numtide/flake-utils";
-    grackle.url = "github:mjschwenne/grackle";
+    opam-nix.url = "github:tweag/opam-nix";
+    opam-repository.url = "github:ocaml/opam-repository";
+    opam-repository.flake = false;
+    opam-coq-repository.url = "github:coq/opam-coq-archive";
+    opam-coq-repository.flake = false;
+    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
   };
 
   outputs = {
