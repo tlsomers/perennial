@@ -8,22 +8,8 @@ Set Default Proof Using "Type".
 (* This class holds for IrisG instances with certain properties needed to show
    the existence of a token that can be spent to strip a later around a `wpc` *)
 Class later_tokG {Λ Σ} (IRISG : irisGS Λ Σ) := {
-  later_tok : iProp Σ;
-  later_tok_timeless : Timeless later_tok;
-  later_tok_decr :
-    ⊢ (∀ g ns mj D κ, global_state_interp g ns mj D κ ∗ later_tok ==∗
-                                   ∃ ns', ⌜ S ns' ≤ ns ⌝%nat ∗ global_state_interp g ns' mj D κ)%I;
-  later_tok_incr :
-    ⊢ (∀ g ns mj D κ, global_state_interp g ns mj D κ ==∗ global_state_interp g (S ns) mj D κ ∗ later_tok)%I;
-  num_laters_per_step_exp:
-              ∀ n1 n2, n1 < n2 → 2 + num_laters_per_step n1 + num_laters_per_step n1 ≤ num_laters_per_step n2;
-  step_count_next_mono : ∀ n1 n2, n1 < n2 → step_count_next n1 < step_count_next n2;
-  step_count_next_add : ∀ n1 n2, n1 < n2 → 10 + step_count_next n1 ≤ step_count_next n2;
-  step_count_next_iter : ∀ n1, 10 + n1 ≤ step_count_next n1;
+  f_exp : ∀ n1 n2, n1 < n2 → 20 + f n1 + f n1 ≤ f n2;
 }.
-
-
-Arguments later_tok {_ _ _ _}.
 
 Section res.
 
@@ -36,108 +22,50 @@ Implicit Types Φc : iProp Σ.
 Implicit Types v : val Λ.
 Implicit Types e : expr Λ.
 
-Lemma num_laters_per_step_lt : ∀ n1 n2, n1 < n2 → num_laters_per_step n1 < num_laters_per_step n2.
-Proof using LT.
-  intros ?? ?%num_laters_per_step_exp. lia.
-Qed.
+Definition later_tok : iProp Σ := ⧗ 2 ∗ £ 2.
 
-Lemma num_laters_per_step_lt2 : ∀ n1 n2, n1 < n2 → S (num_laters_per_step n1) < num_laters_per_step n2.
-Proof using LT.
-  intros ?? ?%num_laters_per_step_exp. lia.
-Qed.
-
-Lemma num_laters_per_step_le : ∀ n1 n2, n1 < n2 → S (num_laters_per_step n1) + 2 <= S (num_laters_per_step n2).
-Proof using LT.
-  intros ?? ?%num_laters_per_step_exp. lia.
-Qed.
-
-Lemma later_tok_incrN n g ns mj D κ :
-  global_state_interp g ns mj D κ ==∗
-  global_state_interp g (n + ns) mj D κ ∗
-  Nat.iter n (λ P, later_tok ∗ P) True%I.
+Lemma later_toks_equiv n :
+  ⧗ (n*2) ∗ £ (n*2) ==∗ Nat.iter n (λ P, later_tok ∗ P) True.
 Proof.
   induction n.
-  - eauto.
-  - iIntros "Hg". iMod (IHn with "[$]") as "(Hg&$)".
-    by iMod (later_tok_incr with "[$]") as "($&$)".
+  - by iIntros.
+  - replace (S n * 2) with (2 + n * 2) by lia.
+    iIntros "[[Htr Htr1] [Hlc Hlc1]]".
+    rewrite Nat.iter_succ.
+    iMod (IHn with "[$]") as "$".
+    by iFrame.
 Qed.
 
 Lemma wpc_later_tok_use2_credits s E e Φ Φc :
   language.to_val e = None →
   later_tok -∗
-  (£ 2 -∗ WPC e @ s; E {{ v, later_tok -∗ Φ v }} {{ later_tok -∗ Φc }}) -∗
+  (£ 2 -∗ WPC e @ s; E {{ v, later_tok -∗ Φ v }} {{ Φc }}) -∗
   WPC e @ s; E {{ Φ }} {{ Φc }}.
-Proof.
-  iIntros (Hnval) "Htok Hwp".
-  rewrite ?wpc_unfold /wpc_pre.
-  rewrite Hnval.
-  iIntros (mj).
-  iSplit.
-  - iIntros (q σ1 g1 ns D κ κs nt) "Hσ Hg HNC Hlc".
-    iMod (later_tok_decr with "[$]") as (ns' Heq) "Hg".
-    iMod (fupd2_mask_subseteq ∅ ∅) as "H"; [ set_solver+ | set_solver+ |].
-    iApply (step_fupd_extra.step_fupd2N_le (S (S (S (num_laters_per_step ns')))) (S (num_laters_per_step ns))).
-    { assert (Hlt: ns' < ns) by lia.
-      apply num_laters_per_step_lt2 in Hlt. lia.
-    }
-    iModIntro. simpl. iModIntro. iNext.
-    iModIntro. simpl. iModIntro. iNext.
-    iMod "H" as "_".
-    iDestruct (lc_weaken with "Hlc") as "Hlc".
-    {  assert (Hlt: ns' < ns) by lia.
-       apply num_laters_per_step_le in Hlt. apply Hlt. }
-    iDestruct (lc_split with "Hlc") as "(Hlc&Hlc2)".
-    iDestruct ("Hwp" with "Hlc2") as "Hwp".
-    iDestruct ("Hwp" $! _) as "(Hwp&_)".
-    iSpecialize ("Hwp" $! _ _ _ _ _ _ _ with "Hσ Hg HNC Hlc").
-    iMod "Hwp".
-    iMod "Hwp". iModIntro. iModIntro.
-    iNext.
-    iApply (step_fupd_extra.step_fupd2N_wand with "Hwp").
-    iIntros "($&H)".
-    iIntros. iMod ("H" with "[//]") as "(Hσ&Hg&Hwp&$)".
-    iMod (later_tok_incr with "[$]") as "(Hg&Htok')".
-    iFrame.
-    iMod (global_state_interp_le _ ((step_count_next ns)) _ _ with "Hg") as "Hg".
-    { apply Nat.le_succ_l, step_count_next_mono. lia. }
-    iFrame.
-    iApply (wpc0_strong_mono with "Hwp"); try reflexivity.
-    iModIntro. iSplit.
-    * iIntros (?) "H". iModIntro. iApply "H"; eauto.
-    * iIntros "H". iModIntro. iApply "H"; eauto.
-  - iIntros (g ns D κs) "Hg HC Hlc".
-    iMod (later_tok_decr with "[$]") as (ns' Heq) "Hg".
-    iMod (fupd2_mask_subseteq ∅ ∅) as "H"; [ set_solver+ | set_solver+ |].
-    iDestruct (lc_weaken ((num_laters_per_step ns') + 2) with "Hlc") as "Hlc".
-    {  assert (Hlt: ns' < ns) by lia.
-       apply num_laters_per_step_le in Hlt. lia. }
-    iApply (step_fupd_extra.step_fupd2N_le (S (S (num_laters_per_step ns'))) (num_laters_per_step ns)).
-    { assert (Hlt: ns' < ns) by lia.
-      apply num_laters_per_step_lt2 in Hlt. lia.
-    }
-    rewrite Nat.iter_succ. iModIntro. iModIntro. iNext.
-    rewrite Nat.iter_succ. iModIntro. iModIntro. iNext.
-    iMod "H".
-    iDestruct (lc_split with "Hlc") as "(Hlc&Hlc2)".
-    iDestruct ("Hwp" with "Hlc2") as "Hwp".
-    iDestruct ("Hwp" $! _) as "(_&Hwp)".
-    iMod ("Hwp" with "[$] [$] [$]") as "Hwp".
-    iModIntro.
-    iApply (step_fupd_extra.step_fupd2N_wand with "Hwp"). iIntros "Hwp".
-    iMod "Hwp" as "(Hg&HΦc)".
-    iMod (later_tok_incr with "[$]") as "(Hg&Htok')".
-    iMod (global_state_interp_le _ ns _ _ with "Hg") as "Hg".
-    { lia. }
-    iFrame.
-    iModIntro. by iApply "HΦc".
+Proof using H IRISG LT Λ Σ.
+  iIntros (Hnval) "[Htok Hlc] Hwp".
+  iDestruct ("Hwp" with "[$]") as "Hwp".
+  iApply (wpc_use_step_strong _ _ _ _ _ _ (later_tok) True%I with "[Htok]"); [by rewrite Hnval|done| |].
+  - iSplit; [|done].
+    iIntros (P D) "HP".
+    iApply (physical_step_tr_use with "Htok").
+    iApply (physical_step_wand with "HP"). iIntros "HP H⧗ H£".
+    iApply step_fupd2N_intro. iNext. iFrame.
+    iDestruct (lc_weaken with "[$]") as "$".
+    { pose proof (f_exp 0 2); lia. }
+    iDestruct (tr_weaken with "[$]") as "$".
+    { pose proof (f_exp 0 2); lia. }
+    done.
+  - iApply (wpc_mono with "[$]").
+    + iIntros (v) "H tok". by iApply "H".
+    + iIntros "$ ? //".
 Qed.
 
 Lemma wpc_later_tok_use2 s E e Φ Φc :
   language.to_val e = None →
   later_tok -∗
-  ▷▷ WPC e @ s; E {{ v, later_tok -∗ Φ v }} {{ later_tok -∗ Φc }} -∗
+  ▷▷ WPC e @ s; E {{ v, later_tok -∗ Φ v }} {{ Φc }} -∗
   WPC e @ s; E {{ Φ }} {{ Φc }}.
-Proof.
+Proof using H IRISG LT Λ Σ.
   iIntros (?) "Htok Hwp". iApply (wpc_later_tok_use2_credits with "[$]"); auto.
   iIntros "[Hlc1 Hlc2]".
   iApply fupd_wpc.
@@ -150,9 +78,9 @@ Qed.
 Lemma wpc_later_tok_use s E e Φ Φc :
   language.to_val e = None →
   later_tok -∗
-  ▷ WPC e @ s; E {{ v, later_tok -∗ Φ v }} {{ later_tok -∗ Φc }} -∗
+  ▷ WPC e @ s; E {{ v, later_tok -∗ Φ v }} {{ Φc }} -∗
   WPC e @ s; E {{ Φ }} {{ Φc }}.
-Proof.
+Proof using H IRISG LT Λ Σ.
   iIntros (Hnval) "Htok Hwp".
   iApply (wpc_later_tok_use2 with "[$]"); auto.
 Qed.
@@ -162,60 +90,22 @@ Lemma wpc_later_tok_invest s E e Φ Φc :
   later_tok -∗
   WPC e @ s; E {{ v, Nat.iter 10 (λ P, later_tok ∗ P) True%I -∗ Φ v }} {{ Φc }} -∗
   WPC e @ s; E {{ Φ }} {{ Φc }}.
-Proof.
-  iIntros (Hnval) "Htok Hwp".
-  rewrite ?wpc_unfold /wpc_pre.
-  rewrite Hnval.
-  iIntros (mj).
-  iSplit.
-  - iIntros (q σ1 g1 ns D κ κs nt) "Hσ Hg HNC Hlc".
-    iMod (later_tok_decr with "[$]") as (ns' Heq) "Hg".
-    iMod (fupd2_mask_subseteq ∅ ∅) as "H"; [ set_solver+ | set_solver+ |].
-    iModIntro. simpl. iModIntro. iNext. iMod "H" as "_".
-    iDestruct ("Hwp" $! _) as "(Hwp&_)".
-    iSpecialize ("Hwp" $! _ _ _ _ _ _ _ with "Hσ Hg HNC [Hlc]").
-    { iApply (lc_weaken with "Hlc").
-      assert (Hlt: ns' < ns) by lia.
-      apply num_laters_per_step_lt2 in Hlt. lia. }
-    iMod "Hwp".
-    iApply (step_fupd_extra.step_fupd2N_le (S (num_laters_per_step ns')) (num_laters_per_step ns)
-              with "[Hwp]").
-    { assert (Hlt: ns' < ns) by lia.
-      apply num_laters_per_step_lt in Hlt. lia.
-    }
-    iApply (step_fupd_extra.step_fupd2N_wand with "Hwp").
-    iNext. iIntros "($&H)".
-    iIntros. iMod ("H" with "[//]") as "(Hσ&Hg&Hwp&$)".
-    iFrame.
-    iMod (later_tok_incrN 10 with "[$]") as "(Hg&Htoks)".
-    iMod (global_state_interp_le _ ((step_count_next ns)) _ _ with "Hg") as "Hg".
-    { by apply step_count_next_add. }
-    iFrame.
-    iApply (wpc0_strong_mono with "Hwp"); try reflexivity.
-    iModIntro. iSplit.
-    * iIntros (?) "H". iModIntro. iApply "H"; eauto.
-    * iIntros "H". iModIntro. iApply "H"; eauto.
-  - iIntros (g ns D κs) "Hg HC Hlc".
-    iMod (later_tok_decr with "[$]") as (ns' Heq) "Hg".
-    iMod (fupd2_mask_subseteq ∅ ∅) as "H"; [ set_solver+ | set_solver+ |].
-    iApply (step_fupd_extra.step_fupd2N_le (S (num_laters_per_step ns')) (num_laters_per_step ns)).
-    { assert (Hlt: ns' < ns) by lia.
-      apply num_laters_per_step_lt in Hlt. lia.
-    }
-    rewrite Nat.iter_succ. iModIntro. iModIntro. iNext.
-    iMod "H". iDestruct ("Hwp" $! _) as "(_&Hwp)".
-    iMod ("Hwp" with "[$] [$] [Hlc]") as "Hwp".
-    { iApply (lc_weaken with "Hlc").
-      assert (Hlt: ns' < ns) by lia.
-      apply num_laters_per_step_lt2 in Hlt. lia. }
-    iModIntro.
-    iApply (step_fupd_extra.step_fupd2N_wand with "Hwp"). iIntros "Hwp".
-    iMod "Hwp" as "(Hg&HΦc)".
-    iMod (later_tok_incr with "[$]") as "(Hg&Htok')".
-    iMod (global_state_interp_le _ ns _ _ with "Hg") as "Hg".
-    { lia. }
-    iFrame.
-    iModIntro. eauto.
+Proof using H IRISG LT Λ Σ.
+  iIntros (Hnval) "[Htok Hlc] Hwp".
+  iApply (wpc_use_step_strong _ _ _ _ _ _ (Nat.iter 10 (λ P, later_tok ∗ P) True)%I True%I with "[Htok]"); [by rewrite Hnval|done| |].
+  - iSplit; [|done].
+    iIntros (P D) "HP".
+    iApply (physical_step_tr_use with "Htok").
+    iApply (physical_step_wand with "HP"). iIntros "HP H⧗ H£".
+    iApply step_fupd2N_intro. iNext. iFrame.
+    iMod (later_toks_equiv 10 with "[-]") as "$"; [|done].
+    iDestruct (lc_weaken with "[$]") as "$".
+    { pose proof (f_exp 0 2); lia. }
+    iDestruct (tr_weaken with "[$]") as "$".
+    { pose proof (f_exp 0 2); lia. }
+  - iApply (wpc_mono with "[$]").
+    + iIntros (v) "H tok". by iApply "H".
+    + iIntros "$ ? //".
 Qed.
 
 Lemma wpc_later_tok_pure_step `{!Inhabited (state Λ)} `{!Inhabited (global_state Λ)} φ s E e1 e2 Φ Φc:
@@ -223,32 +113,36 @@ Lemma wpc_later_tok_pure_step `{!Inhabited (state Λ)} `{!Inhabited (global_stat
   φ →
   (Φc ∧ ((later_tok ∗ later_tok) -∗ WPC e2 @ s; E {{ Φ }} {{ Φc }})) -∗
   WPC e1 @ s; E {{ Φ }} {{ Φc }}.
-Proof.
+Proof using H IRISG LT Λ Σ.
   iIntros (Hexec Hφ) "H".
   specialize (Hexec Hφ).
   inversion Hexec as [|? e1' e2' e3' [Hsafe ?] Hrest]. subst.
   inversion Hrest; subst.
   assert (∀ σ1 g1, reducible e1 σ1 g1).
   { intros. apply reducible_no_obs_reducible. eauto. }
-  iApply wpc_lift_step.
+  iApply wpc_lift_step_physical.
   { unshelve (eapply reducible_not_val; eauto).
     { eapply inhabitant. }
     { eapply inhabitant. }
   }
   iSplit; last first.
   { iLeft in "H". eauto. }
-  iIntros (????????) "Hs Hg".
-  iMod fupd_mask_subseteq as "Hclose"; last iModIntro; first by set_solver. iSplit.
-  { iPureIntro. destruct s; eauto. }
-  iNext. iIntros (e2' σ2' g2' efs Hstep).
-  iMod (later_tok_incrN 2 with "[$]") as "(Hg&Htok)".
-  iSpecialize ("H" with "[Htok]").
-  { iDestruct "Htok" as "($&$&_)". }
-  edestruct (pure_step_det _ _ _ _ _ _ _ Hstep) as (->&->&->&->&->).
-  iFrame. iMod "Hclose".
-  iMod (global_state_interp_le with "[$]") as "$".
-  { etransitivity; last eapply step_count_next_iter. lia. }
-  eauto.
+  iIntros. iSplit.
+  { iMod (fupd_mask_subseteq ∅) as "Hclose"; first set_solver.
+    iPureIntro. destruct s; eauto.
+  }
+  iIntros. iRight in "H".
+  iApply (physical_step_step); iSplit.
+  { iMod tr_persistent_zero as "$". iMod (fupd_mask_subseteq ∅) as "_"; set_solver. }
+  iIntros "Hlc Htr".
+  iDestruct (lc_weaken (2+2) with "Hlc") as "[H£1 H£2]".
+  { pose proof (f_exp 0 1); lia. }
+  iDestruct (tr_weaken (2+2) with "Htr") as "[H⧗1 H⧗2]".
+  { pose proof (f_exp 0 1); lia. }
+  iMod (fupd_mask_subseteq ∅) as "Hclose"; first set_solver.
+  iModIntro. iApply step_fupd2N_intro. iNext. iNext. iMod "Hclose". iModIntro.
+  edestruct (pure_step_det _ _ _ _ _ _ _ H1) as (->&->&->&->&->).
+  simpl. iFrame. iApply "H". iFrame.
 Qed.
 
 Lemma wp_later_tok_pure_step `{!Inhabited (state Λ)} `{!Inhabited (global_state Λ)} φ s E e1 e2 Φ:
@@ -256,7 +150,7 @@ Lemma wp_later_tok_pure_step `{!Inhabited (state Λ)} `{!Inhabited (global_state
   φ →
   ((later_tok ∗ later_tok) -∗ WP e2 @ s; E {{ Φ }}) -∗
   WP e1 @ s; E {{ Φ }}.
-Proof.
+Proof using H IRISG LT Λ Σ.
   iIntros (Hexec Hφ) "H".
   rewrite wp_eq /wp_def.
   iApply wpc_later_tok_pure_step; auto.

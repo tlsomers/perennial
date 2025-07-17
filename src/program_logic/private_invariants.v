@@ -17,25 +17,25 @@ Class pri_invG {Λ Σ} (IRISG : irisGS Λ Σ) := {
   pri_inv_tok_split : ∀ q1 q2 E, pri_inv_tok (q1 + q2)%Qp E -∗ (pri_inv_tok q1 E ∗ pri_inv_tok q2 E);
   pri_inv_tok_join : ∀ q1 q2 E, pri_inv_tok q1 E -∗ pri_inv_tok q2 E -∗ pri_inv_tok (q1 + q2)%Qp E;
   pri_inv_tok_valid : ∀ q E, pri_inv_tok q E -∗ ⌜ q ≤ 1 ⌝%Qp;
-  pri_inv_tok_global_valid : ∀ g ns q D κ, global_state_interp g ns q D κ -∗ ⌜ /2 < q ∧ q ≤ 1⌝%Qp;
+  pri_inv_tok_global_valid : ∀ g q D κ, global_state_interp g q D κ -∗ ⌜ /2 < q ∧ q ≤ 1⌝%Qp;
   pri_inv_tok_global_split :
-     ∀ g ns q1 q2 D κ, ⌜ /2 < q2 ⌝%Qp -∗ global_state_interp g ns (q1 + q2)%Qp D κ -∗
-                         global_state_interp g ns q2 D κ ∗
-                         (∀ g ns κ, global_state_interp g ns q2 D κ -∗ global_state_interp g ns (q1 + q2)%Qp D κ);
+     ∀ g q1 q2 D κ, ⌜ /2 < q2 ⌝%Qp -∗ global_state_interp g (q1 + q2)%Qp D κ -∗
+                         global_state_interp g q2 D κ ∗
+                         (∀ g κ, global_state_interp g q2 D κ -∗ global_state_interp g (q1 + q2)%Qp D κ);
   pri_inv_tok_global_join :
-     ∀ g ns q1 q2 D κ, global_state_interp g ns q2 D κ ∗ pri_inv_tok q1 D -∗
-                       global_state_interp g ns (q1 + q2)%Qp D κ;
+     ∀ g q1 q2 D κ, global_state_interp g q2 D κ ∗ pri_inv_tok q1 D -∗
+                       global_state_interp g (q1 + q2)%Qp D κ;
   pri_inv_tok_alloc :
-    ⊢ (∀ g ns q D κ, global_state_interp g ns q D κ ==∗
-                   ∃ E, ⌜ E ## D ⌝ ∗ pri_inv_tok 1%Qp E ∗ global_state_interp g ns q D κ)%I;
+    ⊢ (∀ g q D κ, global_state_interp g q D κ ==∗
+                   ∃ E, ⌜ E ## D ⌝ ∗ pri_inv_tok 1%Qp E ∗ global_state_interp g q D κ)%I;
   pri_inv_tok_disable :
-    ⊢ (∀ E g ns q D κ, pri_inv_tok q E ∗ global_state_interp g ns q D κ ==∗
-                       global_state_interp g ns q (E ∪ D) κ)%I;
+    ⊢ (∀ E g q D κ, pri_inv_tok q E ∗ global_state_interp g q D κ ==∗
+                       global_state_interp g q (E ∪ D) κ)%I;
   pri_inv_tok_enable :
-    ⊢ (∀ E g ns q D κ, ⌜ E ## D ∧ set_infinite E ⌝ ∧ global_state_interp g ns q (E ∪ D) κ ==∗
-                     pri_inv_tok q E ∗ global_state_interp g ns q D κ)%I;
+    ⊢ (∀ E g q D κ, ⌜ E ## D ∧ set_infinite E ⌝ ∧ global_state_interp g q (E ∪ D) κ ==∗
+                     pri_inv_tok q E ∗ global_state_interp g q D κ)%I;
   pri_inv_tok_disj :
-    ⊢ (∀ g ns q1 q2 D κ E, global_state_interp g ns q1 D κ ∗ pri_inv_tok q2 E -∗ ⌜ E ## D ∨ ✓(q1 + q2)%Qp ⌝)
+    ⊢ (∀ g q1 q2 D κ E, global_state_interp g q1 D κ ∗ pri_inv_tok q2 E -∗ ⌜ E ## D ∨ ✓(q1 + q2)%Qp ⌝)
 }.
 
 Section def.
@@ -89,11 +89,11 @@ Context `{PRI: !pri_invG IRISG}.
 
 
   Lemma pri_inv_tok_global_le_acc :
-     ∀ g ns q1 q2 D κ, ⌜ /2 < q2 ∧ q2 ≤ q1 ⌝%Qp -∗ global_state_interp g ns q1 D κ -∗
-                         global_state_interp g ns q2 D κ ∗
-                         (∀ g' ns' κ', global_state_interp g' ns' q2 D κ' -∗ global_state_interp g' ns' q1 D κ').
+     ∀ g q1 q2 D κ, ⌜ /2 < q2 ∧ q2 ≤ q1 ⌝%Qp -∗ global_state_interp g q1 D κ -∗
+                         global_state_interp g q2 D κ ∗
+                         (∀ g' κ', global_state_interp g' q2 D κ' -∗ global_state_interp g' q1 D κ').
   Proof using PRI.
-    iIntros (g ns q1 q2 D κ [Hle1 Hle2]) "Hg".
+    iIntros (g q1 q2 D κ [Hle1 Hle2]) "Hg".
     apply Qp.le_lteq in Hle2.
     destruct Hle2 as [Hlt|Heq]; last first.
     { subst. iFrame. eauto. }
@@ -114,11 +114,11 @@ Context `{PRI: !pri_invG IRISG}.
     rewrite !wpc0_unfold /wpc_pre.
     iSplit; last first.
     { iDestruct "Hwpc" as "(_&Hwpc)".
-      iIntros (????) "Hg HC Hlc".
+      iIntros (???) "Hg HC".
       iDestruct (pri_inv_tok_global_le_acc with "[//] [$]") as "(Hg&Hclo)".
-      iSpecialize ("Hwpc" with "[$] [$] [$]").
-      iApply (step_fupd2N_inner_wand with "Hwpc"); auto.
-      iIntros "(Hg&$)". iApply "Hclo". iFrame.
+      iSpecialize ("Hwpc" with "[$] [$]").
+      iMod "Hwpc" as "[Hg $]". iModIntro.
+      by iApply "Hclo".
     }
     iDestruct "Hwpc" as "(Hwpc&_)".
     destruct (to_val e) eqn:Heq_val.
@@ -128,13 +128,11 @@ Context `{PRI: !pri_invG IRISG}.
       iModIntro. iApply "Hclo". iFrame.
     - iIntros.
       iDestruct (pri_inv_tok_global_le_acc with "[//] [$]") as "(Hg&Hclo)".
-      iSpecialize ("Hwpc" with "[$] [$] [$] [$]"). iMod "Hwpc".
-      simpl.
-      iModIntro. iMod "Hwpc". iModIntro. iNext. iMod "Hwpc". iModIntro.
-      iApply (step_fupd2N_wand with "Hwpc").
-      iIntros "($&Hwpc)".
-      iIntros. iMod ("Hwpc" with "[//]") as "($&Hg&Hwpc&Hefs&$)".
-      iModIntro.
+      iSpecialize ("Hwpc" with "[$] [$] [$]").
+      iSplit. { iDestruct "Hwpc" as "[$ _]". }
+      iIntros.
+      iApply (physical_step_wand_later with "(Hwpc [//])").
+      iIntros "!> ($&Hg&Hwpc&Hefs&$)".
       iSplitL "Hg Hclo".
       { iApply "Hclo"; auto. }
       iSplitL "Hwpc".
@@ -154,8 +152,8 @@ Context `{PRI: !pri_invG IRISG}.
     - subst. iIntros "$". auto.
   Qed.
 
-  Lemma pri_inv_tok_disj_inv_half g ns q D κ E:
-    global_state_interp g ns q D κ ∗ pri_inv_tok (/ 2)%Qp E -∗ ⌜ E ## D ⌝.
+  Lemma pri_inv_tok_disj_inv_half g q D κ E:
+    global_state_interp g q D κ ∗ pri_inv_tok (/ 2)%Qp E -∗ ⌜ E ## D ⌝.
   Proof.
     iIntros "(Hg&Hitok)".
     iDestruct (pri_inv_tok_disj with "[$]") as %Hcases.
@@ -188,10 +186,10 @@ Context `{PRI: !pri_invG IRISG}.
     iIntros "!> !>". rewrite pri_inv_eq /pri_inv_def. iExists _. iFrame; eauto.
   Qed.
 
-  Lemma pri_inv_tok_disable_reenable E g ns q D κ :
-    pri_inv_tok q E ∗ global_state_interp g ns q D κ ==∗
-    global_state_interp g ns q (E ∪ D) κ ∗
-    □ (∀ g ns q κ, global_state_interp g ns q (E ∪ D) κ ==∗ pri_inv_tok q E ∗ global_state_interp g ns q D κ).
+  Lemma pri_inv_tok_disable_reenable E g q D κ :
+    pri_inv_tok q E ∗ global_state_interp g q D κ ==∗
+    global_state_interp g q (E ∪ D) κ ∗
+    □ (∀ g q κ, global_state_interp g q (E ∪ D) κ ==∗ pri_inv_tok q E ∗ global_state_interp g q D κ).
   Proof.
     iIntros "(Htok&Hg)".
     iDestruct (pri_inv_tok_infinite with "[$]") as %Hinf.
@@ -204,7 +202,7 @@ Context `{PRI: !pri_invG IRISG}.
       apply Qp.add_lt_mono; auto. }
     iMod (pri_inv_tok_disable with "[$]") as "Hg".
     iModIntro; iFrame. iModIntro.
-    iIntros (????) "H". iApply (pri_inv_tok_enable with "[$H]").
+    iIntros (???) "H". iApply (pri_inv_tok_enable with "[$H]").
     eauto.
   Qed.
 
@@ -251,7 +249,7 @@ Context `{PRI: !pri_invG IRISG}.
     iSplit.
     {
       destruct (to_val e) eqn:Heq_val.
-      - iIntros (q g1 ns D κs) "Hg HNC".
+      - iIntros (q g1 D κs) "Hg HNC".
         iMod (pri_inv_tok_alloc with "[$]") as (Einv Hdisj) "(Hitok&Hg)".
         iDestruct (pri_inv_tok_global_valid with "[$]") as %(?&?).
         iSpecialize ("H" with "[$Hitok //]").
@@ -262,14 +260,14 @@ Context `{PRI: !pri_invG IRISG}.
         iDestruct (pri_inv_tok_global_valid with "[$]") as %(?&?).
         iSpecialize ("H" with "[$Hitok //]").
         rewrite wpc0_unfold/ wpc_pre. rewrite Heq_val.
-        iMod "H" as "(H&_)". by iMod ("H" with "[$] [$] [$] [$]") as "$".
+        iMod "H" as "(H&_)". by iDestruct ("H" with "[$] [$] [$]") as "$".
     }
     iIntros.
     iMod (pri_inv_tok_alloc with "[$]") as (Einv Hdisj) "(Hitok&Hg)".
     iDestruct (pri_inv_tok_global_valid with "[$]") as %(?&?).
     iSpecialize ("H" with "[$Hitok //]").
     rewrite wpc0_unfold/ wpc_pre.
-    iMod "H" as "(_&H)". by iMod ("H" with "[$] [$] [$]") as "$".
+    iMod "H" as "(_&H)". by iDestruct ("H" with "[$] [$]") as "$".
   Qed.
 
   Lemma wpc_pri_inv_tok_res s E1 e Φ Φc :

@@ -355,6 +355,13 @@ Proof.
   iIntros. iApply step_fupd2_intro; auto. iNext. by iApply IHle.
 Qed.
 
+Lemma step_fupd2N_intro (n : nat) P :
+  ▷^n P ⊢ ||▷=>^n P.
+Proof.
+  induction n => //=.
+  iIntros. iApply step_fupd2_intro; auto. iNext. by iApply IHn.
+Qed.
+
 Lemma step_fupd2N_inner_wand E1a E1b E2a E2b k1 k2 P Q:
   E2a ⊆ E1a →
   E2b ⊆ E1b →
@@ -416,6 +423,14 @@ Proof.
     iIntros ">H". iModIntro. iNext. iMod "H". auto.
 Qed.
 
+Lemma step_fupd2N_S_fupd2_l n P :
+  (||={∅|∅,∅|∅}=> ||▷=>^(S n) P) ⊣⊢ (||▷=>^(S n) P).
+Proof.
+  apply (anti_symm (⊢)); rewrite !Nat.iter_succ.
+  - iIntros "H". by iMod "H".
+  - iIntros "H". by iModIntro.
+Qed.
+
 Lemma step_fupd2N_fupd2 n P :
   n > 0 →
   (||▷=>^n ||={∅|∅,∅|∅}=> P) ⊢ (||▷=>^n P).
@@ -444,15 +459,15 @@ Qed.
 
 End step_fupd2.
 
-Lemma step_fupd2N_soundness `{!invGpreS Σ} n m φ :
-  (∀ `{Hinv: !invGS Σ}, £ m ⊢@{iPropI Σ} ||={⊤|⊤,∅|∅}=> ||▷=>^n ⌜ φ ⌝) →
-  φ.
+Lemma step_fupd2N_soundness `{!invGpreS Σ} n m P `{!Plain P} :
+  (∀ `{Hinv: !invGS Σ}, £ m ⊢@{iPropI Σ} ||={⊤|⊤,∅|∅}=> ||▷=>^n P) →
+  ⊢ P.
 Proof.
-  intros Hiter. eapply (fupd2_soundness (m+n)).
+  intros Hiter. eapply (fupd2_soundness (m+n)); first done.
   intros Hinv. iIntros "[Hm Hn]".
   iMod (Hiter with "Hm") as "Hupd". clear Hiter.
   iInduction n as [|n] "IH"; simpl.
-  - iModIntro. done. 
+  - iModIntro. done.
   - rewrite lc_succ. iDestruct "Hn" as "[Hone Hn]".
     iMod "Hupd". iMod (lc_fupd_elim_later with "Hone Hupd") as "> Hupd".
     by iApply ("IH" with "Hn Hupd").
