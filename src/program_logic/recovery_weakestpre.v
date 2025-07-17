@@ -30,11 +30,11 @@ Definition wpr_pre `{irisGS Λ Σ} (CS: crash_semantics Λ) (s : stuckness)
   λ (_:generationGS Λ Σ) E e rec Φ Φinv Φr,
   (WPC e @ s ; E
      {{ Φ }}
-     {{ ∀ σ g mj D σ' (HC: crash_prim_step CS σ σ') ns κs n,
-        state_interp σ n -∗ global_state_interp g ns mj D κs ={E}=∗ ▷ |={E}=>
+     {{ ∀ σ g mj D σ' (HC: crash_prim_step CS σ σ') κs n,
+        state_interp σ n -∗ global_state_interp g mj D κs ={E}=∗ ▷ |={E}=>
           ∃ (HGnew:generationGS Λ Σ), NC 1 ∗
             state_interp (G:=HGnew) σ' 0 ∗
-            global_state_interp g (step_count_next ns) mj D κs ∗
+            global_state_interp g mj D κs ∗
             (Φinv HGnew ∧ wpr HGnew E rec rec (Φr HGnew) Φinv Φr) }})%I.
 
 Local Instance wpr_pre_contractive `{!irisGS Λ Σ} CS s: Contractive (wpr_pre CS s).
