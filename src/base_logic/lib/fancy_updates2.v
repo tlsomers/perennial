@@ -346,14 +346,14 @@ End fupd2.
 
 Local Existing Instance inv_lcPreG.
 
-Lemma fupd2_soundness `{!invGpreS Σ} n E1 E1' E2 E2' (φ : Prop) :
-  (∀ `{Hinv: !invGS Σ}, £ n ⊢ ||={E1|E1',E2|E2'}=> ⌜φ⌝) → φ.
+Lemma fupd2_soundness `{!invGpreS Σ} n E1 E1' E2 E2' P `{!Plain P} :
+  (∀ `{Hinv: !invGS Σ}, £ n ⊢ ||={E1|E1',E2|E2'}=> P) → ⊢ P.
 Proof.
-  iIntros (Hfupd). eapply pure_soundness.
+  iIntros (Hfupd).
   eapply (lc_soundness (Σ:=Σ) (S n)); first tc_solve. intros Hc. rewrite lc_succ.
   iIntros "[Hone Hn]". rewrite -le_upd_trans. iApply bupd_le_upd.
   iMod wsat_alloc as (Hinv ->) "[Hw HE]".
-  iAssert (||={⊤|⊤,E2|E2'}=> ⌜φ⌝)%I with "[Hn]" as "H".
+  iAssert (||={⊤|⊤,E2|E2'}=> P)%I with "[Hn]" as "H".
   { iMod (fupd2_mask_subseteq E1 E1') as "_"; [done..|]. by iApply (Hfupd _). }
   rewrite uPred_fupd2_eq /uPred_fupd2_def.
   iModIntro. iMod ("H" with "[$Hw HE]") as "[Hw [HE H']]".

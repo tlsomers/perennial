@@ -18,6 +18,7 @@
     devShells."${system}".default = let
       pkgs = import nixpkgs {
         inherit system;
+        config.allowUnfree = true;
       };
       opam-nix = inputs.opam-nix.lib.${system};
       grackle = pkgs.buildGoModule {
@@ -44,20 +45,17 @@
       repos = [ "${inputs.opam-repository}" "${inputs.opam-coq-repository}" ];
       scope = opam-nix.queryToScope { inherit repos; } ({ ocaml-base-compiler = "*"; "coq" = "8.20.1"; vscoq-language-server = "*"; });
 
-      makeSettingsDir = pkgs.writeShellScript "mkSettingsDir" ''
-        DIR=$(mktemp -d)
-        mkdir $DIR/User
-        cp ${codium_settings} $DIR/User/settings.json
-        echo $DIR
-      '';
+      vscode-marketplace = inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace;
+      vscode-marketplace-correct = inputs.nix-vscode-extensions.extensions.${system}.forVSCodeVersion "1.100.0";
+      vscode = import /research/nix/vscode-no-state.nix {
+        inherit pkgs vscode-marketplace;
 
-      vscode = with pkgs; (vscode-with-extensions.override {
-        vscode = vscodium.override { commandLineArgs = "--disable-workspace-trust --user-data-dir $(${makeSettingsDir})"; };
-        vscodeExtensions = with inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace; [
+        settings = codium_settings;
+        vscodeExtensions = with vscode-marketplace; [
           maximedenes.vscoq
           leanprover.lean4
         ];
-      });
+      };
       
     in
       pkgs.mkShell {
