@@ -83,7 +83,7 @@ Proof.
   { iDestruct "HΦ" as "(H&_)". iIntros. iMod ("H" with "[$]"); eauto. }
   iDestruct "HΦ" as "(_&HΦ)".
   iIntros "H".
-  iModIntro. iIntros (?????????) "Hσ Hg". iMod ("H" with "[//] Hσ Hg") as "H".
+  iModIntro. iIntros (????????) "Hσ Hg". iMod ("H" with "[//] Hσ Hg") as "H".
   iModIntro. iNext.
   iMod ("H") as (HG') "(HNC&?&?&H)".
   iModIntro. iExists HG'. iFrame.
@@ -99,10 +99,10 @@ Qed.
    where the crash condition implies the precondition for a crash wp for rec *)
 Lemma idempotence_wpr CS s E1 e rec Φx Φinv Φrx (Φcx: generationGS Λ Σ → iProp Σ) HG :
   ⊢ WPC e @ s ; E1 {{ Φx }} {{ Φcx HG }} -∗
-   (□ ∀ (HG': generationGS Λ Σ) σ g σ' (HC: crash_prim_step CS σ σ') ns mj D κs n,
-        Φcx HG' -∗ state_interp (G:=HG') σ n -∗ global_state_interp g ns mj D κs ={E1}=∗
+   (□ ∀ (HG': generationGS Λ Σ) σ g σ' (HC: crash_prim_step CS σ σ') mj D κs n,
+        Φcx HG' -∗ state_interp (G:=HG') σ n -∗ global_state_interp g mj D κs ={E1}=∗
         ▷ |={E1}=> ∃ (HG'': generationGS Λ Σ), NC 1 ∗
-            state_interp (G:=HG'') σ' 0 ∗ global_state_interp g (step_count_next ns) mj D κs ∗
+            state_interp (G:=HG'') σ' 0 ∗ global_state_interp g mj D κs ∗
             (Φinv HG'' ∧ WPC rec @ s ; E1 {{ Φrx HG'' }} {{ Φcx HG'' }})) -∗
     wpr CS s HG E1 e rec (Φx) Φinv Φrx.
 Proof.
@@ -141,11 +141,11 @@ Definition wpr0_pre `{irisGS Λ Σ} (CS: crash_semantics Λ) (s : stuckness) (mj
   λ (_:generationGS Λ Σ) E e rec Φ Φinv Φr,
   (wpc0 s mj E e
      Φ
-     (∀ σ g σ' (HC: crash_prim_step CS σ σ') ns mj D κs n,
-        state_interp σ n -∗ global_state_interp g ns mj D κs ={E}=∗  ▷ |={E}=>
+     (∀ σ g σ' (HC: crash_prim_step CS σ σ') mj D κs n,
+        state_interp σ n -∗ global_state_interp g mj D κs ={E}=∗  ▷ |={E}=>
           ∃ (HGnew:generationGS Λ Σ), NC 1 ∗
             state_interp (G:=HGnew) σ' 0 ∗
-            global_state_interp g (step_count_next ns) mj D κs ∗
+            global_state_interp g mj D κs ∗
             (Φinv HGnew ∧ wpr HGnew E rec rec (Φr HGnew) Φinv Φr)))%I.
 
 Local Instance wpr0_pre_contractive `{!irisGS Λ Σ} CS s mj: Contractive (wpr0_pre CS s mj).
@@ -190,7 +190,7 @@ Proof.
   iApply wpc0_wpc.
   iApply (wpc_strong_mono with "Hwpr"); [auto|auto|].
   iSplit; first eauto.
-  iIntros "H !>". iIntros (σ g σ' Hcrash ns mj' D κs n) "Hσ Hg".
+  iIntros "H !>". iIntros (σ g σ' Hcrash mj' D κs n) "Hσ Hg".
   iMod ("H" with "[//] [$] [$]") as "H".
   do 2 iModIntro.
   iMod "H" as (HG') "(HNC&Hσ&Hg&H)".
