@@ -519,20 +519,20 @@ Proof using Hrpre Hhpre Hcpre.
     iIntros "H". iDestruct "H" as (?????) "H".
     iExists _, _, _, _, _, _. iSplit; first done. iExact "H".
   - iModIntro. iClear "Hspec Htrace".
-    iIntros (? σ_pre_crash g_pre_crash σ_post_crash Hcrash ns κs ?).
+    iIntros (? σ_pre_crash g_pre_crash σ_post_crash Hcrash κs ?).
     iIntros (κs' ?).
     iIntros "H". iDestruct "H" as (?? es' σs' gs' stat -> Hexec Hsafe)
                                     "(Hspec_ffi&Hspec_gffi&Htrace_frag&Horacle_frag&HΦc)".
     iNamed 1. iIntros "Hg".
     iDestruct (trace_agree with "Htr_auth [$]") as %Heq1'.
     iDestruct (oracle_agree with "Hor_auth Horacle_frag") as %Heq2'.
+
     iInv "Hpre_inv" as ">H" "Hclo".
-    iDestruct (pre_borrowN_global_interp_le _ _ _ _ _ κs' with "[$] [Hg]") as %Hle.
-    { rewrite //=. }
-    iMod ("Hclo" with "[$]") as "_".
-    iModIntro.
+    iApply (physical_step_use_pre_borrowN with "[$]").
     iPoseProof (@Hwp_crash $! _ _ with "HΦc") as "H".
-    iNext. iIntros.
+    iApply physical_step_intro.
+    iNext. iIntros "[Hbor1 Hbor2]".
+    iMod ("Hclo" with "[$]") as "_".
     iMod (na_heap.na_heap_reinit _ tls σ_post_crash.(heap)) as (name_na_heap) "Hh".
     iDestruct "Hg" as "(Hffig&Hg)".
     iMod (ffi_crash _ σ_pre_crash.(world) σ_post_crash.(world) with "Hffi") as (ffi_names) "(Hw&Hcrel&Hc)".
@@ -555,18 +555,17 @@ Proof using Hrpre Hhpre Hcpre.
       eauto.
     { eapply trace_equiv_preserve_crash; eauto. }
     { eapply oracle_equiv_preserve_crash; eauto. }
-    iDestruct "Hg" as "(Hb_ginv&$&Hc&Hp)".
-    iMod (cred_interp_incr_k _ (9 * ns + 10) with "Hc") as "(Hc&Hfrag)".
+    iDestruct "Hg" as "(Hb_ginv&$&%&Hp)".
+    (* iMod (cred_interp_incr_k _ (9 * ns + 10) with "Hc") as "(Hc&Hfrag)".
     assert (∃ n0 : nat, 9 * ns + 10 = n * 4 + n0)%nat as (n0'&Heqn0').
     { exists (9 * ns + 10 - 4 * n)%nat. lia. }
     iEval (rewrite Heqn0') in "Hfrag".
     iDestruct (cred_frag_split with "Hfrag") as "(Hfrag&_)".
-    iDestruct (cred_frag_to_pre_borrowN with "Hfrag") as "Hpre".
+    iDestruct (cred_frag_to_pre_borrowN with "Hfrag") as "Hpre". *)
     iModIntro.
     rewrite /state_interp//=.
     iFrame.
-    iSplitL "Hc".
-    { iExactEq "Hc". f_equal. rewrite /step_count_next/=. lia. }
+    iSplitR; first done.
     iSplit.
     + iClear "∗". eauto.
     + iDestruct (source_pool_singleton with "Hpool") as "Hpool".
