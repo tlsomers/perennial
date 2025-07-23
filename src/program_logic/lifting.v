@@ -131,13 +131,10 @@ Proof.
 Qed.
 *)
 
-Lemma f_mono' n : n ≤ f n.
-Proof. Admitted.
-
-Lemma wp_lift_pure_step_no_fork `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E E' Φ e1 :
+Lemma wp_lift_pure_step_no_fork_pstep `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E Φ e1 :
   (∀ σ1 g1, if s is NotStuck then reducible e1 σ1 g1 else to_val e1 = None) →
   (∀ κ σ1 g1 e2 σ2 g2 efs, prim_step e1 σ1 g1 κ e2 σ2 g2 efs → κ = [] ∧ σ2 = σ1 ∧ g2 = g1 ∧ efs = []) →
-  (∀ κ e2 efs σ g, ⌜prim_step e1 σ g κ e2 σ g efs⌝ -∗ £ (f 1) -∗ ⧗ (f 1) -∗ |={E}[E']▷=> WP e2 @ s; E {{ Φ }})
+  (∀ κ e2 efs σ g, ⌜prim_step e1 σ g κ e2 σ g efs⌝ -∗ |={E|∅}⧗=> WP e2 @ s; E {{ Φ }})
   ⊢ WP e1 @ s; E {{ Φ }}.
 Proof.
   iIntros (Hsafe Hstep) "H". iApply wp_lift_step_fupdN.
@@ -146,14 +143,27 @@ Proof.
   iSplit.
   { iMod (fupd_mask_subseteq ∅) as "Hclo"; [set_solver+|]. iPureIntro. destruct s; done. }
   iIntros.
-  iApply physical_step_step. iSplit.
+  (* iApply physical_step_step. iSplit.
   { iMod (tr_persistent_zero) as "$". iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver+..|done]. }
-  iIntros "Hlc Htr".
+  iIntros "Hlc Htr". *)
   destruct (Hstep κ σ1 g1 e2 σ2 g2 efs) as (-> & <- & <- & ->); auto.
-  iMod ("H" with "[//] [$] [$]") as "H".
-  iMod (fupd_mask_subseteq ∅) as "Hclo"; [set_solver+|]. rewrite f_zero /=.
-  iModIntro. iModIntro. iNext. iModIntro. iMod "Hclo". iMod "H" as "$".
-  by iFrame.
+  iApply (physical_step_wand with "(H [//])").
+  iIntros "H /=". iFrame.
+Qed.
+
+Lemma wp_lift_pure_step_no_fork `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E E' Φ e1 :
+  (∀ σ1 g1, if s is NotStuck then reducible e1 σ1 g1 else to_val e1 = None) →
+  (∀ κ σ1 g1 e2 σ2 g2 efs, prim_step e1 σ1 g1 κ e2 σ2 g2 efs → κ = [] ∧ σ2 = σ1 ∧ g2 = g1 ∧ efs = []) →
+  (∀ κ e2 efs σ g, ⌜prim_step e1 σ g κ e2 σ g efs⌝ -∗ £ (f 1) -∗ ⧗ (f 1) -∗ |={E}[E']▷=> WP e2 @ s; E {{ Φ }})
+  ⊢ WP e1 @ s; E {{ Φ }}.
+Proof.
+  iIntros (??) "H".
+  iApply (wp_lift_pure_step_no_fork_pstep); try done.
+  iIntros. iApply physical_step_step. iSplit.
+  { iMod (tr_persistent_zero) as "$". iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver+..|done]. }
+  iIntros "Hlc Htr". rewrite f_zero /=.
+  iMod ("H" with "[//] [$] [$]") as "H". iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver+..|].
+  do 4 iModIntro. iMod "Hclo". by iMod "H".
 Qed.
 
 (*
@@ -240,6 +250,17 @@ Proof.
   iFrame. iModIntro. apply of_to_val in Heqo as <-. by iApply wp_value.
 Qed.
 
+Lemma wp_lift_pure_det_step_no_fork_pstep `{!Inhabited (state Λ), !Inhabited (global_state Λ)} {s E Φ} e1 e2 :
+  (∀ σ1 g1, if s is NotStuck then reducible e1 σ1 g1 else to_val e1 = None) →
+  (∀ σ1 g1 κ e2' σ2 g2 efs', prim_step e1 σ1 g1 κ e2' σ2 g2 efs' →
+    κ = [] ∧ σ2 = σ1 ∧ g2 = g1 ∧ e2' = e2 ∧ efs' = []) →
+  (|={E|∅}⧗=> WP e2 @ s; E {{ Φ }}) ⊢ WP e1 @ s; E {{ Φ }}.
+Proof.
+  iIntros (? Hpuredet) "H". iApply (wp_lift_pure_step_no_fork_pstep s E); try done.
+  { naive_solver. }
+  by iIntros (κ e' efs' σ g (_&?&?&->&?)%Hpuredet).
+Qed.
+
 Lemma wp_lift_pure_det_step_no_fork `{!Inhabited (state Λ), !Inhabited (global_state Λ)} {s E E' Φ} e1 e2 :
   (∀ σ1 g1, if s is NotStuck then reducible e1 σ1 g1 else to_val e1 = None) →
   (∀ σ1 g1 κ e2' σ2 g2 efs', prim_step e1 σ1 g1 κ e2' σ2 g2 efs' →
@@ -251,6 +272,20 @@ Proof.
   iIntros (κ e' efs' σ g (_&?&?&->&?)%Hpuredet) "Hlc Htr".
   iApply (step_fupd_wand with "H"); iIntros "H".
   by iApply ("H" with "[$]").
+Qed.
+
+Lemma wp_pure_step_pstep `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E e1 e2 φ n Φ :
+  PureExec φ n e1 e2 →
+  φ →
+  (|={E|∅}⧗=>^n WP e2 @ s; E {{ Φ }}) ⊢ WP e1 @ s; E {{ Φ }}.
+Proof.
+  iIntros (Hexec Hφ) "Hwp". specialize (Hexec Hφ).
+  iInduction Hexec as [e|n e1 e2 e3 [Hsafe ?]] "IH"; [done|simpl].
+  iApply wp_lift_pure_det_step_no_fork_pstep.
+  - intros σ g. specialize (Hsafe σ g). destruct s; eauto using reducible_not_val.
+  - done.
+  - iApply (physical_step_wand with "Hwp").
+    by iApply "IH".
 Qed.
 
 Lemma wp_pure_step_fupd `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E E' e1 e2 φ n Φ :

@@ -247,7 +247,7 @@ lemmas. *)
                                   pointsto_block l (DfracOwn 1) b }}}.
   Proof.
     iIntros (Φ) ">Ha HΦ". iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hd&Htr) Hg !>".
+    iIntros (σ1 g1 mj D κ κs nt)  "(Hσ&Hd&Htr) Hg !>".
     cbv [ffi_local_ctx disk_interp].
     iDestruct (@gen_heap_valid with "Hd Ha") as %?.
     iSplit.
@@ -260,12 +260,10 @@ lemmas. *)
       monad_simpl.
       econstructor; [ eapply relation.suchThat_gen0; reflexivity | ].
       monad_simpl. }
-    iNext; iIntros (v2 σ2 g2 efs Hstep).
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     apply base_step_atomic_inv in Hstep; [ | by inversion 1 ].
     inv_base_step.
     monad_inv.
-    iMod (global_state_interp_le with "Hg") as "$".
-    { apply step_count_next_incr. }
     iMod (na_heap_alloc_list tls _ l (Block_to_vals b) (Reading O) with "Hσ")
       as "(Hσ & Hblock & Hl)".
     { rewrite length_Block_to_vals. rewrite /block_bytes. lia. }
@@ -367,7 +365,7 @@ lemmas. *)
     iIntros (Φ) ">H Hϕ".
     iLöb as "IH".
     iApply wp_lift_base_step_nc; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hd&Htr) Hg".
+    iIntros (σ1 g1 mj D κ κs nt)  "(Hσ&Hd&Htr) Hg".
     iApply (ncfupd_mask_intro); first set_solver+. iIntros "Hclo".
     cbv [ffi_local_ctx disk_interp].
     iSplit.
@@ -382,15 +380,13 @@ lemmas. *)
         repeat (monad_simpl; cbn).
         rewrite decide_False //. repeat (monad_simpl; cbn).
     }
-    iNext; iIntros (v2 σ2 g2 efs Hstep).
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     apply base_step_atomic_inv in Hstep; [ | by inversion 1 ].
     inv_base_step.
     monad_inv.
     iMod "Hclo". iIntros.
     destruct (decide (all_synced _)) as [Ha|Hna].
     - monad_inv.
-      iMod (global_state_interp_le with "Hg") as "$".
-      { apply step_count_next_incr. }
       iAssert (⌜ (∀ k bs, m !! k = Some bs → fst bs = snd bs) ⌝)%I with "[-]" as "%Hsynced".
       {
         iIntros (k bs Hin).
@@ -398,14 +394,12 @@ lemmas. *)
         iDestruct (gen_heap_valid with "[$] [$]") as %Hlook.
         iPureIntro. eapply Ha in Hlook. eauto.
       }
-      iFrame. rewrite big_sepL_nil right_id.
+      iFrame "Hg". simpl. iFrame.
       iApply wp_value.
       iFrame. iApply ("Hϕ" with "[-]").
       simpl. iFrame. eauto.
     - monad_inv.
-      iMod (global_state_interp_le with "Hg") as "$".
-      { apply step_count_next_incr. }
-      iFrame. rewrite big_sepL_nil right_id.
+      iFrame "Hg". simpl. iFrame.
       iApply ("IH" with "[$] [$]").
   Qed.
 
@@ -418,7 +412,7 @@ lemmas. *)
   Proof.
     iIntros (Φ) ">H Hϕ". iDestruct "H" as "(Ha&Hl)".
     iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hd&Htr) Hg !>".
+    iIntros (σ1 g1 mj D κ κs nt)  "(Hσ&Hd&Htr) Hg !>".
     cbv [ffi_local_ctx disk_interp].
     iDestruct (@gen_heap_valid with "Hd Ha") as %?.
     iDestruct (heap_valid_block with "Hσ Hl") as %?.
@@ -432,12 +426,10 @@ lemmas. *)
                 econstructor; econstructor; eauto).
       exact true.
     }
-    iNext; iIntros (v2 σ2 g2 efs Hstep).
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     apply base_step_atomic_inv in Hstep; [ | by inversion 1 ].
     inv_base_step.
     monad_inv.
-    iMod (global_state_interp_le with "Hg") as "$".
-    { apply step_count_next_incr. }
     iMod (@gen_heap_update with "Hd Ha") as "[$ Ha]".
     assert (b = b1); [ | subst b1 ].
     { apply Block_to_vals_ext_eq; intros.

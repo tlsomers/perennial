@@ -104,13 +104,13 @@ Context `{PRI: !pri_invG IRISG}.
     iFrame.
   Qed.
 
-  Lemma wpc0_mj_le s mj1 mj2 e Φ Φc:
+  Lemma wpc0_mj_le E s mj1 mj2 e Φ Φc:
     (/2 < mj1 ≤ mj2)%Qp →
-    wpc0 s mj1 ⊤ e Φ Φc -∗
-    wpc0 s mj2 ⊤ e Φ Φc.
+    wpc0 s mj1 E e Φ Φc -∗
+    wpc0 s mj2 E e Φ Φc.
   Proof using PRI.
     iIntros (Hle) "Hwpc".
-    iLöb as "IH" forall (e Φ Φc).
+    iLöb as "IH" forall (E e Φ Φc).
     rewrite !wpc0_unfold /wpc_pre.
     iSplit; last first.
     { iDestruct "Hwpc" as "(_&Hwpc)".

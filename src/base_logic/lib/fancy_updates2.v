@@ -342,6 +342,34 @@ Lemma fupd2_forall E1 E1' E2 E2' A (Φ : A → _) :
   (||={E1|E1', E2|E2'}=> ∀ x : A, Φ x) ⊢ ∀ x : A, ||={E1|E1', E2|E2'}=> Φ x.
 Proof. apply forall_intro=> a. by rewrite -(forall_elim a). Qed.
 
+Lemma lc_fupd2_elim_later E D P :
+   £1 -∗ (▷ P) -∗ ||={E|D,E|D}=> P.
+Proof.
+  iIntros "Hf Hupd".
+  iApply fupd_fupd2.
+  iApply (lc_fupd_elim_later with "Hf Hupd").
+Qed.
+
+(** If the goal is a fancy update, this lemma can be used to make a later appear
+  in front of it in exchange for a later credit.
+  This is typically used as [iApply (lc_fupd_add_later with "Hcredit")],
+  where ["Hcredit"] is a credit available in the context. *)
+Lemma lc_fupd2_add_later E1 D1 E2 D2 P :
+  £1 -∗ (▷ ||={E1|D1, E2|D2}=> P) -∗ ||={E1|D1, E2|D2}=> P.
+Proof.
+  iIntros "Hf Hupd". iApply (fupd2_trans E1 D1 E1 D1).
+  iApply (lc_fupd2_elim_later with "Hf Hupd").
+Qed.
+
+Lemma lc_fupd2_add_laterN n E1 D1 E2 D2 P :
+  £ n -∗ (▷^n ||={E1|D1, E2|D2}=> P) -∗ ||={E1|D1, E2|D2}=> P.
+Proof.
+  iInduction n as [|n IH] forall (P); simpl.
+  - iIntros "_ $ //".
+  - iIntros "[Hlc Hf] Hupd". iApply (lc_fupd2_add_later with "Hlc").
+    iNext. iApply ("IH" with "Hf Hupd").
+Qed.
+
 End fupd2.
 
 Local Existing Instance inv_lcPreG.
