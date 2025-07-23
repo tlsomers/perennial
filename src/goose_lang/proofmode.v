@@ -43,13 +43,19 @@ Proof.
   pose proof @pure_exec_fill.
   iIntros "Henv".
   iApply (lifting.wp_pure_step_later with "[-]"); [done|].
-  iModIntro. iIntros "Hcred".
+  iModIntro. iIntros "Hcred Htr".
   destruct Hcred.
   - destruct (envs_app _) eqn:Henv.
-    + rewrite -HΔ'. rewrite envs_app_singleton_sound; [|done]. by iApply "Henv".
+    + rewrite -HΔ'. rewrite envs_app_singleton_sound; [|done].
+      iDestruct (lc_weaken n with "[$]") as "Hcred".
+      { trans (n * 1)%nat; [lia|]. apply Nat.mul_le_mono_l. simpl. lia. }
+      by iApply "Henv".
     + done.
   - rewrite -HΔ'. done.
 Qed.
+
+
+
 
 Lemma tac_wp_value_noncfupd `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ} Δ s E Φ v :
   envs_entails Δ (Φ v) → envs_entails Δ (WP (Val v) @ s; E {{ Φ }}).
