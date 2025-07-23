@@ -176,8 +176,7 @@ Proof using later_tokG0.
     iIntros (e2 ????).
     iApply (physical_step_tr_use with "[$]").
     iApply (physical_step_wand with "(Hwp [//])").
-    iIntros "(Hstate&Hg&H&Hefs&HNC) H⧗ H£".
-    iApply step_fupd2N_intro. iNext. iModIntro. iFrame "Hstate".
+  iIntros "($&Hg&H&Hefs&HNC) H⧗ H£ !>".
     destruct (to_val e2) eqn:Heq_val.
     {
       iEval (rewrite wpc0_unfold /wpc_pre) in "H".
@@ -281,7 +280,7 @@ Proof using later_tokG0.
     iSplit; first eauto.
     iSplit; first eauto.
     iSplit; first eauto.
-    { assert (2 ≤ f 2) by (pose proof (f_exp 0 2); lia).
+    { assert (2 ≤ f 2) by (pose proof (f_exp 2); lia).
       iDestruct (tr_weaken 2 with "[$]") as "$"; first done.
       by iApply (lc_weaken). 
     }
@@ -382,8 +381,7 @@ Proof using later_tokG0.
   
   iApply (physical_step_tr_use with "[$]").
   iApply (physical_step_wand with "(Hwp [//])").
-  iIntros "(Hstate&Hg&H&Hefs&HNC) H⧗ H£".
-  iApply step_fupd2N_intro. iNext. iModIntro. iFrame "Hstate".
+  iIntros "($&Hg&H&Hefs&HNC) H⧗ H£ !>".
 
   destruct (to_val e2) eqn:Heq_val.
   {
@@ -524,7 +522,7 @@ Proof using later_tokG0.
       etransitivity; first eapply Qp.le_min_l.
       eapply Qp.le_min_r. }
     iSplit; first eauto.
-    { assert (2 ≤ f 2) by (pose proof (f_exp 0 2); lia).
+    { assert (2 ≤ f 2) by (pose proof (f_exp 2); lia).
       iDestruct (tr_weaken 2 with "[$]") as "$"; first done.
       by iApply (lc_weaken). 
     }

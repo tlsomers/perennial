@@ -220,8 +220,8 @@ Section physical_step.
   Qed.
 
   (* The rule for using spatial time receipts. *)
-  Lemma physical_step_tr_use {E D} n P :
-    ⧗ n -∗ (|={E | D}⧗=> (⧗ (f n) -∗ £ (f n) -∗ ||▷=>^(f n) ||={E|D, E|D}=> P)) -∗ |={E | D}⧗=> P.
+  Lemma physical_step_tr_use_strong {E D} n P :
+    ⧗ n -∗ (|={E | D}⧗=> (⧗ (f n) -∗ £ (f n) -∗ ||={E|D, ∅|∅}=> ||▷=>^(f n) ||={∅|∅, E|D}=> P)) -∗ |={E | D}⧗=> P.
   Proof.
     unseal.
     iIntros "H⧗ >Hupd !>" (nlc ntr ntrp) "Hsup H⧗' H⧖ H£".
@@ -236,12 +236,22 @@ Section physical_step.
     iApply (step_fupd2N_S_fupd2).
     iApply (step_fupd2N_wand with "[$]").
     iIntros "(? & H⧗ & H⧖ & >HP)".
-    iApply (fupd2_mask_intro); [set_solver..|].
-    iIntros "Hcl".
     iDestruct (tr_weaken (f n + f ntr) with "H⧗") as "[H⧗₁ H⧗']".
     { apply f_subadditive'; lia. }
     iApply (step_fupd2N_wand with "(HP [$] [$])").
-    iFrame. iMod "Hcl". iIntros "$".
+    iIntros "$". iFrame.
+  Qed.
+
+  Lemma physical_step_tr_use {E D} n P :
+    ⧗ n -∗ (|={E | D}⧗=> (⧗ (f n) -∗ £ (f n) -∗ ||={E|D, E|D}=> P)) -∗ |={E | D}⧗=> P.
+  Proof.
+    iIntros "H H'".
+    iApply (physical_step_tr_use_strong with "[$] [H']").
+    iApply (physical_step_wand with "[$]").
+    iIntros "H ? ?".
+    iMod (fupd2_mask_subseteq ∅ ∅) as "Hcl"; [set_solver..|].
+    iModIntro. iApply (step_fupd2N_intro). iNext. iMod "Hcl".
+    iApply ("H" with "[$] [$]").
   Qed.
 
   Local Lemma step_fupdN_sep n (P Q : iProp Σ):
@@ -406,7 +416,7 @@ Section physical_step.
       iModIntro. iApply (physical_step_atomic E D).
       iMod "H". iApply (physical_step_wand with "[$]").
       by iModIntro.
-  Qed. 
+  Qed.
  
 
   Lemma physical_stepN_wand {E D} n P Q :
@@ -475,6 +485,20 @@ Section physical_step.
     rewrite /ElimModal intuitionistically_if_elim
       fupd_frame_r wand_elim_r.
     iIntros (_) "H". iApply physical_step_atomic. by iApply fupd_fupd2.
+  Qed.
+
+  Global Instance is_except_zero_physical_step E1 E2 P :
+    IsExcept0 (|={E1|E2}⧗=> P).
+  Proof. unseal. apply _. Qed.
+
+  Lemma physical_stepN_fupd_swap {E D} n P :
+    (||={E|D,E|D}=> |={E|D}⧗=>^n P) ⊣⊢ |={E|D}⧗=>^n ||={E|D,E|D}=> P.
+  Proof.
+    destruct n; first done.
+    iSplit.
+    - iIntros ">H".
+      iApply (physical_stepN_wand with "[$]"). iIntros "$ //".
+    - iIntros. by iApply (physical_stepN_S_fupd).
   Qed.
 
   Global Instance elim_modal_conj (P P' Q₁ Q₂ Q₁' Q₂' : iProp Σ) :
@@ -552,11 +576,11 @@ Section soundness.
 
 
   Lemma physical_stepN_soundness `{!invGpreS Σ} `{!trGpreS Σ} (P : iProp Σ) `{!Plain P} n k :
-    (∀ {Hinv : invGS Σ} {Htr: trGS Σ}, ⧗ n ⊢ ||={⊤|⊤, ⊤|⊤}=> |={⊤|⊤}⧗=>^k ||={⊤|⊤, ∅|∅}=> P) → ⊢ P.
+    (∀ {Hinv : invGS Σ} {Htr: trGS Σ}, ⧗ n ∗ £ n ⊢ ||={⊤|⊤, ⊤|⊤}=> |={⊤|⊤}⧗=>^k ||={⊤|⊤, ∅|∅}=> P) → ⊢ P.
   Proof.
     intros HP.
     eapply (step_fupd2N_soundness _ _ _).
-    iIntros (Hinv) "H£".
+    iIntros (Hinv) "[H£ ?]".
     iMod (tr_supply_alloc n) as "(%Htr & Hsup & H⧗)".
     iDestruct (HP with "[$]") as ">HP".
     iDestruct (physical_stepN_soundness_local with "[$] [$] [$]") as ">HP'".

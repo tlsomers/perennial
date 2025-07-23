@@ -8,7 +8,7 @@ Set Default Proof Using "Type".
 (* This class holds for IrisG instances with certain properties needed to show
    the existence of a token that can be spent to strip a later around a `wpc` *)
 Class later_tokG {Λ Σ} (IRISG : irisGS Λ Σ) := {
-  f_exp : ∀ n1 n2, n1 < n2 → 20 + f n1 + f n1 ≤ f n2;
+  f_exp : ∀ n, 10*n ≤ f n;
 }.
 
 Section res.
@@ -25,14 +25,14 @@ Implicit Types e : expr Λ.
 Definition later_tok : iProp Σ := ⧗ 2 ∗ £ 2.
 
 Lemma later_toks_equiv n :
-  ⧗ (n*2) ∗ £ (n*2) ==∗ Nat.iter n (λ P, later_tok ∗ P) True.
+  ⧗ (n*2) ∗ £ (n*2) -∗ Nat.iter n (λ P, later_tok ∗ P) True.
 Proof.
   induction n.
   - by iIntros.
   - replace (S n * 2) with (2 + n * 2) by lia.
     iIntros "[[Htr Htr1] [Hlc Hlc1]]".
     rewrite Nat.iter_succ.
-    iMod (IHn with "[$]") as "$".
+    iDestruct (IHn with "[$]") as "$".
     by iFrame.
 Qed.
 
@@ -49,11 +49,10 @@ Proof using H IRISG LT Λ Σ.
     iIntros (P D) "HP".
     iApply (physical_step_tr_use with "Htok").
     iApply (physical_step_wand with "HP"). iIntros "HP H⧗ H£".
-    iApply step_fupd2N_intro. iNext. iFrame.
     iDestruct (lc_weaken with "[$]") as "$".
-    { pose proof (f_exp 0 2); lia. }
+    { pose proof (f_exp 2); lia. }
     iDestruct (tr_weaken with "[$]") as "$".
-    { pose proof (f_exp 0 2); lia. }
+    { pose proof (f_exp 2); lia. }
     done.
   - iApply (wpc_mono with "[$]").
     + iIntros (v) "H tok". by iApply "H".
@@ -97,12 +96,12 @@ Proof using H IRISG LT Λ Σ.
     iIntros (P D) "HP".
     iApply (physical_step_tr_use with "Htok").
     iApply (physical_step_wand with "HP"). iIntros "HP H⧗ H£".
-    iApply step_fupd2N_intro. iNext. iFrame.
-    iMod (later_toks_equiv 10 with "[-]") as "$"; [|done].
+    iFrame.
+    iDestruct (later_toks_equiv 10 with "[-]") as "$"; [|done].
     iDestruct (lc_weaken with "[$]") as "$".
-    { pose proof (f_exp 0 2); lia. }
+    { pose proof (f_exp 2); lia. }
     iDestruct (tr_weaken with "[$]") as "$".
-    { pose proof (f_exp 0 2); lia. }
+    { pose proof (f_exp 2); lia. }
   - iApply (wpc_mono with "[$]").
     + iIntros (v) "H tok". by iApply "H".
     + iIntros "$ ? //".
@@ -136,9 +135,9 @@ Proof using H IRISG LT Λ Σ.
   { iMod tr_persistent_zero as "$". iMod (fupd_mask_subseteq ∅) as "_"; set_solver. }
   iIntros "Hlc Htr".
   iDestruct (lc_weaken (2+2) with "Hlc") as "[H£1 H£2]".
-  { pose proof (f_exp 0 1); lia. }
+  { pose proof (f_exp 1); lia. }
   iDestruct (tr_weaken (2+2) with "Htr") as "[H⧗1 H⧗2]".
-  { pose proof (f_exp 0 1); lia. }
+  { pose proof (f_exp 1); lia. }
   iMod (fupd_mask_subseteq ∅) as "Hclose"; first set_solver.
   iModIntro. iApply step_fupd2N_intro. iNext. iNext. iMod "Hclose". iModIntro.
   edestruct (pure_step_det _ _ _ _ _ _ _ H1) as (->&->&->&->&->).
