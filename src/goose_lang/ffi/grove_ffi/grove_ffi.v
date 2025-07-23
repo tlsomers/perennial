@@ -156,14 +156,12 @@ lemmas. *)
     {{{ RET listen_socket c; True }}}.
   Proof.
     iIntros (Φ) "_ HΦ". iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hd&Htr) Hg !>".
+    iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hd&Htr) Hg !>".
     iSplit.
     { iPureIntro. eexists _, _, _, _, _; simpl.
       econstructor. rewrite /base_step/=.
       monad_simpl. }
-    iIntros "!>" (v2 σ2 g2 efs Hstep).
-    iMod (global_state_interp_le with "Hg") as "Hg".
-    { apply step_count_next_incr. }
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     inv_base_step.
     simpl.
     iFrame.
@@ -181,7 +179,7 @@ lemmas. *)
     }}}.
   Proof.
     iIntros (Φ) "_ HΦ". iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hd&Htr) Hg !>".
+    iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hd&Htr) Hg !>".
     iSplit.
     { iPureIntro. eexists _, _, _, _, _; simpl.
       econstructor. rewrite /base_step/=.
@@ -190,9 +188,7 @@ lemmas. *)
       monad_simpl. econstructor; first by econstructor.
       monad_simpl.
     }
-    iIntros "!>" (v2 σ2 g2 efs Hstep).
-    iMod (global_state_interp_le with "Hg") as "Hg".
-    { apply step_count_next_incr. }
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     iDestruct "Hg" as "((Hg & %Hg & ?)&?)".
     inv_base_step.
     match goal with
@@ -221,16 +217,14 @@ lemmas. *)
     {{{ c_r, RET connection_socket c_l c_r; True }}}.
   Proof.
     iIntros (Φ) "_ HΦ". iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hd&Htr) Hg !>".
+    iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hd&Htr) Hg !>".
     iSplit.
     { iPureIntro. eexists _, _, _, _, _; simpl.
       econstructor. rewrite /base_step/=.
       monad_simpl. econstructor.
       1:by eapply (relation.suchThat_runs _ _ (W64 0)).
       monad_simpl. }
-    iIntros "!>" (v2 σ2 g2 efs Hstep).
-    iMod (global_state_interp_le with "Hg") as "Hg".
-    { apply step_count_next_incr. }
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     inv_base_step.
     simpl.
     iFrame.
@@ -265,9 +259,7 @@ lemmas. *)
   Proof.
     iIntros (Hmlen Φ) "[Hc Hl] HΦ".
     iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hw&Htr) Hg".
-    iMod (global_state_interp_le with "Hg") as "Hg".
-    { apply step_count_next_incr. }
+    iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hw&Htr) Hg".
     iDestruct "Hg" as "((Hg & %Hg & ?)&?)".
     iDestruct (@gen_heap_valid with "Hg Hc") as %Hc.
     iDestruct (pointsto_vals_bytes_valid with "Hσ Hl") as %Hl.
@@ -279,7 +271,7 @@ lemmas. *)
       monad_simpl. econstructor; first by econstructor.
       monad_simpl.
     }
-    iIntros "!>" (v2 σ2 g2 efs Hstep).
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     inv_base_step.
     rename x into err_early. clear H.
     destruct err_early.
@@ -328,9 +320,7 @@ lemmas. *)
     }}}.
   Proof.
     iIntros (Φ) "He HΦ". iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hw&Htr) Hg".
-    iMod (global_state_interp_le with "Hg") as "Hg".
-    { apply step_count_next_incr. }
+    iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hw&Htr) Hg".
     iDestruct "Hg" as "((Hg & %Hg & ?)&?)".
     iModIntro.
     iDestruct (@gen_heap_valid with "Hg He") as %He.
@@ -344,7 +334,7 @@ lemmas. *)
       { econstructor. done. }
       monad_simpl.
     }
-    iIntros "!>" (v2 σ2 g2 efs Hstep).
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     inv_base_step.
     monad_inv.
     rename select (m = None ∨ _) into Hm. simpl in Hm.
@@ -401,9 +391,7 @@ lemmas. *)
     }}}.
   Proof.
     iIntros (Φ) "Hf HΦ". iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hw&Htr) Hg".
-    iMod (global_state_interp_le with "Hg") as "Hg".
-    { apply step_count_next_incr. }
+    iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hw&Htr) Hg".
     iDestruct "Hw" as "(Htsc & %Hfilebound & Hfiles)".
     iDestruct (@gen_heap_valid with "Hfiles Hf") as %Hf.
     iModIntro. iSplit.
@@ -415,7 +403,7 @@ lemmas. *)
       { constructor. done. }
       monad_simpl.
     }
-    iIntros "!>" (v2 σ2 g2 efs Hstep).
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     inv_base_step.
     rename x into err_early.
     destruct err_early.
@@ -463,9 +451,7 @@ lemmas. *)
   Proof.
     iIntros (Hmlen Φ) "[Hf Hl] HΦ".
     iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hw&Htr) Hg".
-    iMod (global_state_interp_le with "Hg") as "Hg".
-    { apply step_count_next_incr. }
+    iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hw&Htr) Hg".
     iDestruct "Hw" as "(Htsc & %Hfilebound & Hfiles)".
     iDestruct (@gen_heap_valid with "Hfiles Hf") as %Hf.
     iDestruct (pointsto_vals_bytes_valid with "Hσ Hl") as %Hl.
@@ -478,7 +464,7 @@ lemmas. *)
       { econstructor. done. }
       monad_simpl.
     }
-    iIntros "!>" (v2 σ2 g2 efs Hstep).
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     inv_base_step.
     rename x into err_early.
     destruct err_early.
@@ -517,9 +503,7 @@ lemmas. *)
   Proof.
     iIntros (Hmlen Φ) "[Hf Hl] HΦ".
     iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hw&Htr) Hg".
-    iMod (global_state_interp_le with "Hg") as "Hg".
-    { apply step_count_next_incr. }
+    iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hw&Htr) Hg".
     iDestruct "Hw" as "(Htsc & %Hfilebound & Hfiles)".
     iDestruct (@gen_heap_valid with "Hfiles Hf") as %Hf.
     iDestruct (pointsto_vals_bytes_valid with "Hσ Hl") as %Hl.
@@ -532,7 +516,7 @@ lemmas. *)
       { econstructor. done. }
       monad_simpl.
     }
-    iIntros "!>" (v2 σ2 g2 efs Hstep).
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     inv_base_step.
     rename x into err_early.
     destruct err_early.
@@ -575,16 +559,14 @@ lemmas. *)
     }}}.
   Proof.
     iIntros (Φ) "Hprev HΦ". iApply wp_lift_atomic_base_step_no_fork; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hw&Htr) Hg !>".
+    iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hw&Htr) Hg !>".
     iSplit.
     { iPureIntro. eexists _, _, _, _, _; simpl.
       econstructor. rewrite /base_step/=.
       monad_simpl. econstructor.
       1:by eapply (relation.suchThat_runs _ _ (W64 0)).
       monad_simpl. }
-    iIntros "!>" (v2 σ2 g2 efs Hstep).
-    iMod (global_state_interp_le with "Hg") as "Hg".
-    { apply step_count_next_incr. }
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     inv_base_step. iFrame. simpl.
     iSplitR; first done.
     iDestruct "Hw" as "[Htsc Hfiles]".
@@ -607,7 +589,7 @@ lemmas. *)
    WP ExternalOp GetTimeRangeOp #() @ s; E {{ Φ }}.
   Proof.
     iIntros (Φ) "HΦ". iApply wp_lift_atomic_base_step_no_fork_nc; first by auto.
-    iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hd&Htr) Hg !>".
+    iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hd&Htr) Hg !>".
     iSplit.
     { iPureIntro. eexists _, _, _, _, _; simpl.
       econstructor. rewrite /base_step/=.
@@ -630,9 +612,7 @@ lemmas. *)
       }
       monad_simpl.
     }
-    iIntros "!>" (v2 σ2 g2 efs Hstep).
-    iMod (global_state_interp_le with "Hg") as "Hg".
-    { apply step_count_next_incr. }
+    iIntros (v2 σ2 g2 efs Hstep) "!>".
     inv_base_step.
     simpl.
     iFrame.
@@ -675,7 +655,7 @@ lemmas. *)
     iIntros (?) "Hacc_wp".
     iApply wp_acc_global_state_interp.
     { rewrite H. done. }
-    iIntros (?????) "[(? & ? & Ht) ?]".
+    iIntros (????) "[(? & ? & Ht) ?]".
     unfold own_time.
     iMod ("Hacc_wp" with "Ht") as "[Ht Hacc_wp]".
     by iFrame.

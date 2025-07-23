@@ -51,176 +51,131 @@ Definition stwpnode (gen : generationGS Λ Σ) (dn: dist_node) : iProp Σ :=
 Definition stwpnodes (dns: list dist_node) : iProp Σ :=
   [∗ list] dn ∈ dns, ∃ gen, stwpnode gen dn.
 
-Lemma stwpnode_step gen eb t1 σ1 g1 D t2 σ2 g2 κ κs ns:
+Lemma stwpnode_step gen eb t1 σ1 g1 D t2 σ2 g2 κ κs:
   step (t1, (σ1,g1)) κ (t2, (σ2,g2)) →
-  global_state_interp g1 ns mj D (κ ++ κs) -∗
+  global_state_interp g1 mj D (κ ++ κs) -∗
   stwpnode gen {| boot := eb; tpool := t1; local_state := σ1 |} -∗
-  £ (S $ num_laters_per_step ns) -∗
-  ||={⊤|⊤,∅|∅}=> ||▷=>^(S $ num_laters_per_step ns) ||={∅|∅, ⊤|⊤}=>
-  global_state_interp g2 (step_count_next ns) mj D κs ∗
+  |={⊤|⊤}⧗=>
+  global_state_interp g2 mj D κs ∗
   stwpnode gen {| boot := eb; tpool := t2; local_state := σ2 |}.
 Proof.
-  iIntros (Hstep) "Hg Hnode Hlc".
+  iIntros (Hstep) "Hg Hnode".
   iDestruct "Hnode" as "((Hσ&HNC)&Hwptp)".
   destruct t1; first done. simpl.
   iDestruct "Hwptp" as (Φ Φinv Φr) "(Hwpr&Hwptp)". simpl.
-  iPoseProof (crash_adequacy.wptp_step with "[$Hσ] [Hg] [Hwpr] [Hwptp] [HNC] [Hlc]") as "H"; eauto.
+  iPoseProof (crash_adequacy.wptp_step with "[$Hσ] [Hg] [Hwpr] [Hwptp] [HNC]") as "H"; eauto.
   { rewrite wpr0_unfold/wpr0_pre. eauto. }
-  iMod "H" as (e2 t2' ->) "H".
-  iMod "H". iModIntro. simpl. iMod "H". iModIntro. iNext.
-  iApply (step_fupd2N_wand with "H"). iIntros "H".
-  iMod "H" as "(Hσ&Hg&Hwpr&Hwptp&HNC)".
-  iFrame. iModIntro.
+  iDestruct "H" as (e2 t2' ->) "H".
+  iApply (physical_step_wand with "H"). iIntros "(Hσ&Hg&Hwpr&Hwptp&HNC)".
+  iFrame.
   simpl. iExists Φ, Φinv, Φr.
   rewrite wpr0_unfold/wpr0_pre. iFrame.
 Qed.
 
-Lemma stwpnode_crash gen eb t1 σ1 g σ2 κs ns D:
+Lemma stwpnode_crash gen eb t1 σ1 g σ2 κs D:
   crash_prim_step CS σ1 σ2 →
-  global_state_interp g ns mj D κs -∗
+  global_state_interp g mj D κs -∗
   stwpnode gen {| boot := eb; tpool := t1; local_state := σ1 |} -∗
-  £ (S $ num_laters_per_step ns) -∗
-  ||={⊤|⊤, ∅|∅}=> ||▷=>^(num_laters_per_step ns) ||={∅|∅,⊤|⊤}=> ▷ |={⊤}=> ∃ gen',
-  global_state_interp g (step_count_next ns) mj D κs ∗
+  |={⊤|⊤}⧗=> ∃ gen',
+  global_state_interp g mj D κs ∗
   stwpnode gen' {| boot := eb; tpool := [eb]; local_state := σ2 |}.
 Proof.
-  iIntros (Hstep) "Hg Hnode Hlc".
+  iIntros (Hstep) "Hg Hnode".
   iDestruct "Hnode" as "((Hσ&HNC)&Hwptp)".
   destruct t1; first done. simpl.
   iDestruct "Hwptp" as (Φ Φinv Φr) "(Hwpr&Hwptp)".
   iMod (NC_upd_C with "HNC") as "#HC".
   rewrite wpr0_unfold/wpr0_pre.
-  iPoseProof (@fupd2_mask_subseteq _ _ ⊤ ⊤ ⊤ (⊤ ∖ D)) as "Hclo"; try set_solver+.
-  iMod ("Hclo").
-  iMod (wpc0_crash with "Hwpr [Hg] [] [Hlc]") as "H".
+  iApply physical_step_fupd_l.
+  iMod (@fupd2_mask_subseteq _ _ ⊤ ⊤ ⊤ (⊤ ∖ D)) as "Hclo"; try set_solver+.
+  iMod (wpc0_crash with "Hwpr [Hg] []") as "H".
   { eauto. }
   { iFrame "#". }
-  { iApply (lc_weaken with "Hlc"). lia. }
-  iModIntro.
-  iApply (step_fupd2N_wand with "H"). iIntros "H".
-  iMod "H" as "(Hg&H)". iMod "Hclo".
-  iMod ("H" with "[//] [$] [Hg]") as "H".
+  iDestruct "H" as "(Hg&H)".
+  iDestruct ("H" with "[//] [$] [Hg]") as "H".
   { eauto. }
-  iModIntro. iNext.
+  iMod "Hclo". iModIntro.
+  iApply (physical_step_subseteq ⊤ D); eauto.
+  iApply (physical_step_wand with "H").
+  iDestruct 1 as (HG') "(HNC&Hσ&Hg&(_&Hwpr))".
   iClear "HC".
-  iMod "H" as (HG') "(HNC&Hσ&Hg&(_&Hwpr))".
-  iModIntro. iExists HG'.
+  iExists HG'.
   iFrame. rewrite /wptp. rewrite big_sepL_nil. eauto.
 Qed.
 
-Lemma stwpnodes_step dns1 g1 ns D dns2 g2 κ κs :
+Lemma stwpnodes_step dns1 g1 D dns2 g2 κ κs :
   dist_step (CS := CS) (dns1, g1) κ (dns2, g2) →
-  global_state_interp g1 ns mj D (κ ++ κs) -∗
+  global_state_interp g1 mj D (κ ++ κs) -∗
   stwpnodes dns1 -∗
-  £ (S $ num_laters_per_step ns) -∗
-  ||={⊤|⊤,∅|∅}=> ||▷=>^(S $ num_laters_per_step ns) ||={∅|∅, ⊤|⊤}=>
-  global_state_interp g2 (step_count_next ns) mj D κs ∗
+  |={⊤|⊤}⧗=>
+  global_state_interp g2 mj D κs ∗
   stwpnodes dns2.
 Proof.
-  iIntros (Hstep) "Hg Hnodes Hlc".
+  iIntros (Hstep) "Hg Hnodes".
   inversion Hstep as [ρ1 κs' ρ2 m eb t1 σ1 t2 σ2 Hlookup1 Hlookup2 Hprim |
                       ρ1 ρ2 m eb σ1 σ2 tp Hlookup1 Heq1 Heq2 Hcrash].
   - subst. rewrite /stwpnodes.
     iDestruct (big_sepL_insert_acc with "Hnodes") as "(Hdn&Hnodes)"; first eassumption.
     iDestruct "Hdn" as (ct) "Hdn".
-    iDestruct (stwpnode_step with "[$] [$] Hlc") as "H"; first eassumption.
-    iApply (step_fupd2N_inner_wand with "H"); auto.
+    iDestruct (stwpnode_step with "[$] [$]") as "H"; first eassumption.
+    iApply (physical_step_wand with "H").
     iIntros "($&Hnode)".
     simpl in Hlookup2. rewrite Hlookup2.
     iApply "Hnodes". iExists _. eauto.
   - subst. rewrite /stwpnodes.
     iDestruct (big_sepL_insert_acc with "Hnodes") as "(Hdn&Hnodes)"; first eassumption.
     iDestruct "Hdn" as (ct) "Hdn".
-    iDestruct (stwpnode_crash with "[$] [$] Hlc") as "H"; first eassumption.
-    rewrite Nat.iter_succ_r.
-    iMod "H". iModIntro. iApply (step_fupd2N_wand with "H"). iIntros "H".
-    iMod "H". iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; auto.
-    iModIntro. iNext. iModIntro. iMod "Hclo".
-    iApply (fupd_fupd2).
-    iMod "H" as (ct') "(Hg&Hnode)". rewrite app_nil_l.
+    iDestruct (stwpnode_crash with "[$] [$]") as "H"; first eassumption.
+    iApply (physical_step_wand with "H").
+    iDestruct 1 as (ct') "(Hg&Hnode)".
     simpl in Heq2. rewrite Heq2. iFrame.
-    iModIntro.
     simpl in Heq1. rewrite Heq1.
     iApply "Hnodes". iExists _. eauto.
 Qed.
 
-Local Fixpoint steps_sum (num_laters_per_step step_count_next : nat → nat) (start ns : nat) : nat :=
-  match ns with
-  | O => 0
-  | S ns =>
-    steps_sum num_laters_per_step step_count_next (step_count_next start) ns + S (num_laters_per_step start)
-  end.
-
-Lemma steps_sum_S (num_laters_per_step step_count_next : nat → nat) (start ns : nat) :
-  steps_sum num_laters_per_step step_count_next start (S ns) =
-  steps_sum num_laters_per_step step_count_next (step_count_next start) ns + S (num_laters_per_step start).
-Proof. induction ns => //=; try lia. Qed.
-
-Lemma steps_sum_S_r (num_laters_per_step step_count_next : nat → nat) (start ns : nat) :
-  steps_sum num_laters_per_step step_count_next start (S ns) =
-  steps_sum num_laters_per_step step_count_next start ns + S (num_laters_per_step (Nat.iter ns step_count_next start)).
-Proof.
-  revert start.
-  induction ns => start.
-  - rewrite //=; lia.
-  - rewrite steps_sum_S IHns. simpl.
-    rewrite -Nat.iter_succ_r /=. lia.
-Qed.
-
-Lemma stwpnodes_steps n dns1 g1 ns D dns2 g2 κs κs' :
+Lemma stwpnodes_steps n dns1 g1 D dns2 g2 κs κs' :
   dist_nsteps (CS := CS) n (dns1, g1) κs (dns2, g2) →
-  global_state_interp g1 ns mj D (κs ++ κs') -∗
+  global_state_interp g1 mj D (κs ++ κs') -∗
   stwpnodes dns1 -∗
-  £ (steps_sum num_laters_per_step step_count_next ns n) -∗
-  ||={⊤|⊤,∅|∅}=> ||▷=>^(steps_sum num_laters_per_step step_count_next ns n) ||={∅|∅, ⊤|⊤}=>
-  global_state_interp g2 (Nat.iter n step_count_next ns) mj D κs' ∗
+  |={⊤|⊤}⧗=>^n ||={⊤|⊤, ⊤|⊤}=>
+  global_state_interp g2 mj D κs' ∗
   stwpnodes dns2.
 Proof.
-  revert dns1 dns2 κs κs' g1 ns g2.
-  induction n as [|n IH]=> dns1 dns2 κs κs' g1 ns g2.
-  { inversion_clear 1; iIntros "? ? ?" => /=.
-    iFrame. by iApply fupd2_mask_subseteq. }
+  revert dns1 dns2 κs κs' g1 g2.
+  induction n as [|n IH]=> dns1 dns2 κs κs' g1 g2.
+  { inversion_clear 1. simpl. iIntros "$ $ //". }
   simpl.
-  iIntros (Hsteps) "Hσ He [Hlc1 Hlc2]". inversion_clear Hsteps as [|?? [t1' σ1']].
-  rewrite -(assoc_L (++)) (comm_L Nat.add) Nat.iter_add.
-  iMod (stwpnodes_step with "Hσ He Hlc2") as "H"; first eauto; simplify_eq.
-  iModIntro. iApply step_fupd2N_S_fupd2. iApply (step_fupd2N_wand with "H").
-  iIntros ">(Hσ & He)". iMod (IH with "Hσ He Hlc1") as "IH"; first done. iModIntro.
-  iApply (step_fupd2N_wand with "IH"). iIntros ">IH".
-  iDestruct "IH" as "[??]".
-  rewrite -Nat.iter_succ_r //=.
-  iFrame. eauto.
+  iIntros (Hsteps) "Hσ He". inversion_clear Hsteps as [|?? [t1' σ1']].
+  rewrite -(assoc_L (++)).
+  iDestruct (stwpnodes_step with "Hσ He") as "H"; first eauto; simplify_eq.
+  iApply (physical_step_wand with "H").
+  iIntros "(Hσ & He)".
+  iDestruct (IH with "Hσ He") as "IH"; done.
 Qed.
 
-Lemma stwpnodes_strong_adequacy n dns1 g1 ns D dns2 g2 κs κs' :
+Lemma stwpnodes_strong_adequacy n dns1 g1 D dns2 g2 κs κs' :
   dist_nsteps (CS := CS) n (dns1, g1) κs (dns2, g2) →
-  global_state_interp g1 ns mj D (κs ++ κs') -∗
+  global_state_interp g1 mj D (κs ++ κs') -∗
   (|={⊤}=> stwpnodes dns1) -∗
-  £ (steps_sum num_laters_per_step step_count_next ns n) -∗
-  ||={⊤|⊤,∅|∅}=> ||▷=>^(steps_sum num_laters_per_step step_count_next ns n) ||={∅|∅, ⊤|⊤}=>
-  global_state_interp g2 (Nat.iter n step_count_next ns) mj D κs' ∗
+  ||={⊤|⊤, ⊤|⊤}=> |={⊤|⊤}⧗=>^n ||={⊤|⊤, ⊤|⊤}=>
+  global_state_interp g2 mj D κs' ∗
   stwpnodes dns2.
 Proof.
-  iIntros (Hstep) "Hg >Ht Hlc".
-  iMod (stwpnodes_steps with "Hg Ht Hlc") as "Hgt"; first done.
-  iModIntro. iApply (step_fupd2N_wand with "Hgt").
-  iMod 1 as "(Hg & Ht)". iFrame. auto.
+  iIntros (Hstep) "Hg >Ht".
+  by iDestruct (stwpnodes_steps with "Hg Ht") as "Hgt".
 Qed.
 
-Lemma stwpnodes_progress n dns1 g1 ns D dns2 g2 κs κs' dn e :
+Lemma stwpnodes_progress n dns1 g1 D dns2 g2 κs κs' dn e :
   dist_nsteps (CS := CS) n (dns1, g1) κs (dns2, g2) →
   dn ∈ dns2 → e ∈ tpool dn →
-  global_state_interp g1 ns mj D (κs ++ κs') -∗
+  global_state_interp g1 mj D (κs ++ κs') -∗
   (|={⊤}=> stwpnodes dns1) -∗
-  £ (steps_sum num_laters_per_step step_count_next ns (S n)) -∗
-  (||={⊤|⊤,∅|∅}=> ||▷=>^(steps_sum num_laters_per_step step_count_next ns n) ||={∅|∅, ∅|∅}=>
-   ||▷=>^(num_laters_per_step (Nat.iter n step_count_next ns) + 1)
+  (||={⊤|⊤, ⊤|⊤}=> |={⊤|⊤}⧗=>^n ||={⊤|⊤, ∅|∅}=>
       ⌜ not_stuck e (local_state dn) g2 ⌝).
 Proof.
-  iIntros (Hstep Hin1 Hin2) "Hg >Ht Hlc".
-  rewrite {1}steps_sum_S_r. iDestruct "Hlc" as "[Hlc1 Hlc2]".
-  iMod (stwpnodes_steps with "Hg Ht Hlc1") as "Hgt"; first done.
-  iModIntro. iApply (step_fupd2N_wand with "Hgt").
+  iIntros (Hstep Hin1 Hin2) "Hg >Ht".
+  iDestruct (stwpnodes_steps with "Hg Ht") as "Hgt"; first done.
+  iModIntro. iApply (physical_stepN_wand with "Hgt").
   iMod 1 as "(Hg & Ht)".
   rewrite /stwpnodes.
   eapply elem_of_list_lookup_1 in Hin1 as (i&Hlookup1).
@@ -234,30 +189,26 @@ Proof.
   - rewrite wpr0_unfold/wpr0_pre.
     iPoseProof (wpc_safe with "Hσ [Hg] Hwpr") as "H".
     { eauto. }
-    iMod ("H" with "[HNC] Hlc2") as "H".
-    { iFrame. }
-    iModIntro. eauto.
+    iApply ("H" with "HNC").
   - iDestruct "Ht" as "(_ & He' & _)".
     iPoseProof (wpc_safe with "Hσ [Hg] He'") as "H".
     { eauto. }
-    iMod ("H" with "[HNC] Hlc2") as "H".
-    { iFrame. }
-    iModIntro. eauto.
+    iApply ("H" with "HNC").
 Qed.
 
 End distributed_adequacy.
 
-Theorem wpd_strong_adequacy Σ Λ CS {Hinvpre : invGpreS Σ} {Hcrashpre : crashGpreS Σ}
-  nsinit (ebσs : list node_init_cfg) g1 n κs dns2 g2 φ f1 f2 :
-  (∀ `(Hinv : !invGS Σ),
-     ⊢ |={⊤}=> ∃
-       (global_stateI : global_state Λ → nat → fracR → coPset → list (observation Λ) → iProp Σ)
-       (fork_post : val Λ → iProp Σ) Hpf1a Hpf1b,
-       let HI := IrisGS Λ Σ Hinv (global_stateI) (fork_post) f1 f2 Hpf1a Hpf1b in
-       global_stateI g1 nsinit 1%Qp ∅ κs  ∗
+Theorem wpd_strong_adequacy Σ Λ CS `{Hinvpre: !invGpreS Σ} `{Htrpre: !trGpreS Σ} `{Htrgen : !tr_generation} `{Hcrashpre : !crashGpreS Σ}
+    (ebσs : list node_init_cfg) g1 n κs dns2 g2 φ ntr :
+  (∀ `(Hinv : !invGS Σ) `(Htr : !trGS Σ),
+     ⊢ ⧗ ntr -∗ £ ntr ={⊤}=∗ ∃
+        (global_stateI : global_state Λ → fracR → coPset → list (observation Λ) → iProp Σ)
+        (fork_post : val Λ → iProp Σ),
+       let HI := IrisGS Λ Σ Hinv Htr Htrgen (global_stateI) (fork_post) in
+       global_stateI g1 1%Qp ∅ κs  ∗
        wpd CS ⊤ ebσs ∗
        (⌜ ∀ dn, dn ∈ dns2 → not_stuck_node dn g2 ⌝ -∗
-         global_stateI g2 (Nat.iter n f2 nsinit) 1%Qp ∅ [] -∗
+         global_stateI g2 1%Qp ∅ [] -∗
          (* Under these assumptions, and while opening all invariants, we
          can conclude [φ] in the logic. After opening all required invariants,
          one can use [fupd_mask_subseteq] to introduce the fancy update. *)
@@ -267,17 +218,14 @@ Theorem wpd_strong_adequacy Σ Λ CS {Hinvpre : invGpreS Σ} {Hcrashpre : crashG
   φ.
 Proof.
   intros Hwp Hsteps.
-  apply (step_fupd2N_soundness
-          (steps_sum f1 f2 nsinit n + S (S (f1 (Nat.iter n f2 nsinit))))
-          (steps_sum f1 f2 nsinit n)).
-  iIntros (Hinv) "Hlc".
-  rewrite Nat.iter_add.
-  iMod Hwp as (global_stateI fork_post) "Hwp".
-  iDestruct "Hwp" as (Hpf1a Hpf1b) "(Hg & Hwp & Hφ)".
-  set (HI := IrisGS Λ Σ Hinv (global_stateI) (fork_post) f1 f2 Hpf1a Hpf1b).
+  eapply pure_soundness.
+  apply (physical_stepN_soundness _ ntr n).
+  iIntros (Hinv Htr) "[Htr Hlc]".
+  iMod (Hwp _ _ with "Htr Hlc") as (global_stateI fork_post) "(Hg & Hwp & Hφ)".
+  set (HI := IrisGS Λ Σ Hinv Htr _ (global_stateI) (fork_post)).
   iMod (stwpnodes_strong_adequacy _
-               1%Qp n _ _ nsinit _ _ _ _ []
-    with "[Hg] [Hwp] [Hlc]") as "H"; first done.
+               1%Qp n _ _ _ _ _ _ []
+    with "[Hg] [Hwp]") as "H"; first done.
   { rewrite app_nil_r /=. iExact "Hg". }
   { rewrite /stwpnodes/wpd.
     iApply big_sepL_fmap.
@@ -294,38 +242,24 @@ Proof.
     rewrite /wptp big_sepL_nil right_id.
     by iApply wpr0_wpr.
   }
-  { iExactEq "Hlc". f_equal. }
   iModIntro.
-  iApply (step_fupd2N_wand with "H").
-  iIntros "H".
-  iApply step_fupd2N_S_fupd2. simpl. iMod "H".
-  iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver+..|].
-  iModIntro. iNext. iModIntro.
-  iApply (step_fupd2N_later); first auto.
-  iModIntro. iNext. iModIntro.
-  iNext. iMod "Hclo" as "_".
-  iDestruct "H" as "(Hg&_)".
+  iApply (physical_stepN_wand with "H").
+  iIntros ">(Hg&_)".
   iMod (fupd2_mask_subseteq ⊤ ∅) as "Hclo"; try set_solver+.
   iApply (fupd_fupd2).
   iApply ("Hφ" with "[] [$]").
   (* progress. we run the entire adequacy proof again for this.
    we could probably factor this better... *)
   iPureIntro.
-  clear- Hwp Hsteps Hinvpre Hcrashpre.
+  clear- Hwp Hsteps Hinvpre Htrpre Hcrashpre.
   intros dn Hin e Hin'.
-  apply (step_fupd2N_soundness
-          (steps_sum f1 f2 nsinit n + (f1 (Nat.iter n f2 nsinit) + 1))
-          (steps_sum f1 f2 nsinit (S n))).
-  iIntros (Hinv) "Hlc".
-  rewrite Nat.iter_add.
-  iMod Hwp as (global_stateI fork_post) "Hwp".
-  iDestruct "Hwp" as (Hpf1a Hpf1b) "(Hg & Hwp & Hφ)".
-  set (HI := IrisGS Λ Σ Hinv (global_stateI) (fork_post) f1 f2 Hpf1a Hpf1b).
-  iMod (stwpnodes_progress _
-               1%Qp n _ _ nsinit _ _ _ _ []
-    with "[Hg] [Hwp] [Hlc]") as "H"; first done.
-  { exact Hin. }
-  { exact Hin'. }
+  eapply pure_soundness.
+  apply (physical_stepN_soundness _ ntr n).
+  iIntros (Hinv Htr) "[Htr Hlc]".
+  iMod (Hwp _ _ with "Htr Hlc") as (global_stateI fork_post) "(Hg & Hwp & Hφ)".
+  set (HI := IrisGS Λ Σ Hinv Htr _ (global_stateI) (fork_post)).
+  iMod (stwpnodes_progress _ 1%Qp n _ _ _ _ _ _ []
+    with "[Hg] [Hwp]") as "H"; try done.
   { rewrite app_nil_r /=. iExact "Hg". }
   { rewrite /stwpnodes/wpd.
     iApply big_sepL_fmap.
@@ -342,11 +276,6 @@ Proof.
     rewrite /wptp big_sepL_nil right_id.
     by iApply wpr0_wpr.
   }
-  { done. }
-  iModIntro.
-  iApply (step_fupd2N_wand with "H").
-  iIntros "H". iApply step_fupd2_fupd2N; first lia.
-  iMod "H". iModIntro. done.
 Qed.
 
 Record dist_adequate {Λ CS} (ρs: list (@node_init_cfg Λ)) (g : global_state Λ)
@@ -370,26 +299,25 @@ Proof.
   - constructor; naive_solver.
 Qed.
 
-Corollary wpd_dist_adequacy_inv Σ Λ CS `{!invGpreS Σ} `{!crashGpreS Σ} nsinit
-          ebσs g φinv f1 f2:
-  (∀ `(Hinv : !invGS Σ) κs,
-     ⊢ |={⊤}=> ∃
-       (global_stateI : global_state Λ → nat → fracR → coPset → list (observation Λ) → iProp Σ)
-       (fork_post : val Λ → iProp Σ) Hpf1a Hpf1b,
-       let HI := IrisGS Λ Σ Hinv (global_stateI) (fork_post) f1 f2 Hpf1a Hpf1b in
-       global_stateI g nsinit 1%Qp ∅ κs  ∗
+Corollary wpd_dist_adequacy_inv Σ Λ CS `{!invGpreS Σ} `{!trGpreS Σ} `{!tr_generation} `{!crashGpreS Σ}
+          ebσs g φinv ntr:
+  (∀ `(Hinv : !invGS Σ) `(Htr : !trGS Σ) κs,
+     ⊢ ⧗ ntr -∗ £ ntr ={⊤}=∗ ∃
+       (global_stateI : global_state Λ → fracR → coPset → list (observation Λ) → iProp Σ)
+       (fork_post : val Λ → iProp Σ),
+       let HI := IrisGS Λ Σ Hinv Htr _ (global_stateI) (fork_post) in
+       global_stateI g 1%Qp ∅ κs  ∗
        wpd CS ⊤ ebσs ∗
-       (∀ g κs ns, global_stateI g ns 1%Qp ∅ κs -∗ |={⊤, ∅}=> ⌜ φinv g ⌝)) →
+       (∀ g κs, global_stateI g 1%Qp ∅ κs -∗ |={⊤, ∅}=> ⌜ φinv g ⌝)) →
   dist_adequate (CS := CS) ebσs g (λ g, φinv g).
 Proof.
   intros Hwp.
   apply dist_adequate_alt.
   intros dns2 g2 Hsteps.
   apply erased_dist_steps_nsteps in Hsteps as [n [κs Hsteps]].
-  eapply (wpd_strong_adequacy Σ _ _); [| by eauto ] => ?.
-  iMod Hwp as (global_stateI fork_post) "Hwp".
-  iDestruct "Hwp" as (Hpf1a Hpf1b) "(Hg&Hwp&Hφ)".
-  iModIntro. iExists global_stateI, fork_post.
-  iExists Hpf1a, Hpf1b.
-  iFrame. iIntros "%Hns Hg". iMod ("Hφ" with "[$]") as %Hφ. iPureIntro; eauto.
+  eapply (wpd_strong_adequacy Σ _ _); [| by eauto ] => ? ?.
+  iIntros "Htr Hlc".
+  iMod (Hwp with "Htr Hlc") as (global_stateI fork_post) "(Hg&Hwp&Hφ)".
+  iExists global_stateI, fork_post.
+  iFrame. iIntros "!> %Hns Hg". iMod ("Hφ" with "[$]") as %Hφ. iPureIntro; eauto.
 Qed.

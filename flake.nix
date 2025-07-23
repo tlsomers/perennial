@@ -46,14 +46,18 @@
       scope = opam-nix.queryToScope { inherit repos; } ({ ocaml-base-compiler = "*"; "coq" = "8.20.1"; vscoq-language-server = "*"; });
 
       vscode-marketplace = inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace;
-      vscode-marketplace-correct = inputs.nix-vscode-extensions.extensions.${system}.forVSCodeVersion "1.100.0";
+      vscode-marketplace-release = inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace-release;
       vscode = import /research/nix/vscode-no-state.nix {
         inherit pkgs vscode-marketplace;
+
+        vscode = pkgs.vscode;
 
         settings = codium_settings;
         vscodeExtensions = with vscode-marketplace; [
           maximedenes.vscoq
           leanprover.lean4
+          vscode-marketplace-release.github.copilot
+          vscode-marketplace-release.github.copilot-chat
         ];
       };
       

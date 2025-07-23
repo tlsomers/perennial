@@ -48,7 +48,8 @@ Proof.
   iIntros "Hk".
   pose proof @pure_exec_fill.
   iApply (lifting.wp_pure_step_later with "[-]"); [done|].
-  repeat iModIntro. iIntros "[Hlc _]". by iApply "Hk".
+  repeat iModIntro. iIntros "/= [Hlc _] _".
+  by iApply "Hk".
 Qed.
 
 End classes.

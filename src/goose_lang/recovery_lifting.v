@@ -74,7 +74,7 @@ Proof.
                                                     with "[Hwpc] [Hidemp]"); first auto.
   { iApply (wpc_crash_mono with "[] Hwpc").
     iIntros "HΦcx". iExists _. destruct hG. by iFrame. }
-  iModIntro. iIntros (HG' σ_pre_crash g σ_post_crash Hcrash ns mj D κs ?) "(%HL' & -> & H)".
+  iModIntro. iIntros (HG' σ_pre_crash g σ_post_crash Hcrash mj D κs ?) "(%HL' & -> & H)".
   iSpecialize ("Hidemp" $! HL' _ _ Hcrash with "H").
   rewrite /state_interp.
   iIntros "(_&Hffi_old&Htrace_auth&Horacle_auth) Hg".
@@ -84,8 +84,8 @@ Proof.
   { inversion Hcrash; subst; eauto. }
   iMod (trace_reinit _ σ_post_crash.(trace) σ_post_crash.(oracle)) as (name_trace) "(Htr&Htrfrag&Hor&Hofrag)".
   iMod (globals_reinit _) as (globals_name) "[Hg_auth Hglobals]".
-  iModIntro.
-  iNext.
+  iApply physical_step_fupd.
+  iApply physical_step_intro. iNext.
   iMod (NC_alloc) as (Hc') "HNC".
   (* TODO(RJ): reformulate na_heap_reinit and trace_reinit to better match what we need here. *)
   set (hL' := GooseLocalGS Σ Hc' ffi_names
@@ -98,11 +98,7 @@ Proof.
   iMod ("Hidemp") as "(Hrestart&Hidemp)".
   iSpecialize ("Hidemp" with "Hc").
   rewrite /state_interp//=.
-  iFrame.
-  iDestruct "Hg" as "($&$&Hc&$)".
-  iMod (cred_interp_incr_k _ (9 * ns + 10) with "Hc") as "(Hc&_)".
-  assert (ns + (9 * ns + 10) = 10 * (ns + 1))%nat as -> by lia.
-  iModIntro. iFrame.
+  iFrame. iModIntro.
   iSplit.
   - iDestruct "Hidemp" as "[H _]". iExists hL'. by iFrame.
   - iDestruct "Hidemp" as "[_ H]".
