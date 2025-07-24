@@ -91,6 +91,8 @@ Proof.
   auto with f_equal lia.
 Qed.
 
+Notation gmap_uncurry := (map_uncurry (M1:=gmap _) (M2:=gmap _) (M12:=gmap _)).
+
 Lemma gmap_uncurry_union K1 K2 `{Countable K1} `{Countable K2} A
       (m1 m2: gmap K1 (gmap K2 A)) :
   m1 ##ₘ m2 →
@@ -100,7 +102,7 @@ Proof.
   apply map_eq; intros.
   rewrite lookup_union.
   destruct i as [i1 i2].
-  rewrite !lookup_gmap_uncurry.
+  rewrite !lookup_map_uncurry.
   rewrite lookup_union.
   destruct (m1 !! i1) eqn:?;
            destruct (m2 !! i1) eqn:?;

@@ -102,7 +102,7 @@ Proof.
      split; last split.
      - rewrite fmap_app. apply NoDup_app. split; first done.
        simpl. split; last by apply NoDup_singleton.
-       intros k' Hk' ->%elem_of_list_singleton. done.
+       intros k' Hk' ->%list_elem_of_singleton. done.
      - rewrite list_to_map_snoc //. rewrite Hls.
        change data with ((λ v _, v) data v).
        rewrite map_insert_zip_with. rewrite insert_id //.
@@ -196,9 +196,8 @@ Proof.
     rewrite list_to_map_snoc //.
     rewrite fmap_app NoDup_app in Hnodup.
     destruct Hnodup as (_ & Hnin & _). intros Hin. eapply Hnin; first done.
-    eapply elem_of_list_fmap_1_alt.
-    - apply elem_of_list_here.
-    - done. }
+    apply list_elem_of_here.
+  }
   iIntros "(I & Hli)". iNamed "I". wp_pures. iApply "HΦ". iModIntro.
   rewrite take_ge.
   2:{ rewrite -Map.size_list_to_map // Hls. word. }

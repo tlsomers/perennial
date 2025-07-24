@@ -3,11 +3,6 @@
 
   inputs = {
     nixpkgs.url = "nixpkgs";
-    opam-nix.url = "github:tweag/opam-nix";
-    opam-repository.url = "github:ocaml/opam-repository";
-    opam-repository.flake = false;
-    opam-coq-repository.url = "github:coq/opam-coq-archive";
-    opam-coq-repository.flake = false;
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
   };
 
@@ -20,7 +15,6 @@
         inherit system;
         config.allowUnfree = true;
       };
-      opam-nix = inputs.opam-nix.lib.${system};
       grackle = pkgs.buildGoModule {
         name = "grackle";
         src = pkgs.fetchFromGitHub {
@@ -42,9 +36,6 @@
         };
         vendorHash = "sha256-HCJ8v3TSv4UrkOsRuENWVz5Z7zQ1UsOygx0Mo7MELzY=";
       };
-      repos = [ "${inputs.opam-repository}" "${inputs.opam-coq-repository}" ];
-      scope = opam-nix.queryToScope { inherit repos; } ({ ocaml-base-compiler = "*"; "coq" = "8.20.1"; vscoq-language-server = "*"; });
-
       vscode-marketplace = inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace;
       vscode-marketplace-release = inputs.nix-vscode-extensions.extensions.${system}.vscode-marketplace-release;
       vscode = import /research/nix/vscode-no-state.nix {
@@ -65,8 +56,9 @@
       pkgs.mkShell {
         packages = [
           # coq deps
-          scope.coq
-          scope.vscoq-language-server
+          pkgs.coq
+          pkgs.rocqPackages.stdlib
+          pkgs.coqPackages.vscoq-language-server
 
           vscode
 

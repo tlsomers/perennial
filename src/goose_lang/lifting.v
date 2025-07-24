@@ -1309,7 +1309,7 @@ Lemma wp_atomic_op s E l v0 v1 v op :
 Proof.
   iIntros (? Φ) ">Hl HΦ".
   iApply wp_lift_atomic_base_step_no_fork; auto.
-  iIntros (σ1 g1 ns mj D κ κs n) "[Hσ ?] Hg".
+  iIntros (σ1 g1 mj D κ κs n) "[Hσ ?] Hg".
   iDestruct (heap_pointsto_na_acc with "Hl") as "[Hl Hl_rest]".
   iDestruct (@na_heap_read_1 with "Hσ Hl") as %(lk&?&?Hlock).
   destruct lk; inversion Hlock; subst.
@@ -1320,10 +1320,8 @@ Proof.
     eexists _, _, _, _, _.
     constructor.
     eauto. }
-  iNext; iIntros (v2 σ2 g2 efs Hstep); inv_base_step.
-  iMod (global_state_interp_le _ _ _ _ _ κs with "[$]") as "$".
-  { rewrite /step_count_next/=. lia. }
-  iModIntro. iSplit=>//.
+  iIntros (v2 σ2 g2 efs Hstep); inv_base_step.
+  iNext. iModIntro. iSplit=>//.
   iFrame "Hσ ∗". iApply "HΦ".
   iApply "Hl_rest". iFrame.
 Qed.

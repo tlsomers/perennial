@@ -452,7 +452,7 @@ Proof.
       (set_to_map (λ k, (k, true)) ({[addr2flat a]} ∪ locks_held) !! a')
       as [b|] eqn:Hacc.
     2: {
-      apply not_elem_of_list_to_map_2 in Hacc.
+      apply not_elem_of_list_to_map in Hacc.
       rewrite pair_fst_fmap in Hacc.
       apply (iffLRn (elem_of_elements _ _)) in Hacc.
       apply not_elem_of_union in Hacc.
@@ -470,7 +470,7 @@ Proof.
     destruct (decide (a'' = addr2flat a)) as [Heq|Hneq].
     {
       subst a''.
-      rewrite lookup_insert.
+      rewrite lookup_insert_eq.
       reflexivity.
     }
     destruct Hin as [Hin|Hin]; first by set_solver.
@@ -556,7 +556,7 @@ Proof.
       as [b|] eqn:Hacc.
     2: {
       rewrite bool_decide_eq_false_2 //.
-      apply (not_elem_of_list_to_map_2 ((λ k, (k, true)) <$> _) _) in Hacc.
+      apply (not_elem_of_list_to_map ((λ k, (k, true)) <$> _) _) in Hacc.
       rewrite pair_fst_fmap in Hacc.
       apply (iffLRn (elem_of_elements _ _)) in Hacc.
       assumption.
@@ -962,7 +962,7 @@ Proof.
     iNamed "Hpre".
     wp_loadField.
     rewrite -(insert_id mtodo a b); last by assumption.
-    rewrite -insert_delete_insert dom_insert_L.
+    rewrite -insert_delete_eq dom_insert_L.
     rewrite big_sepS_insert; last by set_solver.
     rewrite big_sepS_insert; last by set_solver.
     iDestruct "Hlockeds" as "[? Hlockeds]".
@@ -970,7 +970,7 @@ Proof.
     iNamed.
     wp_apply (wp_LockMap__Release with "[$HlockMap $Hlocked $Hlinv]").
     iApply "HΦ'".
-    rewrite delete_insert; last by apply lookup_delete.
+    rewrite delete_insert_id; last by apply lookup_delete_eq.
     iFrame.
   }
   iIntros "(Hacquired_m&Hpost)".
@@ -1027,7 +1027,7 @@ Proof.
    iDestruct "Hsep" as "[HP|HQ]"; first auto.
    iModIntro.
    iApply "Hstatuses".
-   { rewrite lookup_insert //=. }
+   { rewrite lookup_insert_eq //=. }
    eauto.
   }
   iApply ("IH" $! _ (Φc ∗ (P i x ∨ Q i x))%I with "[] Hcrash_invs [HQ Hwpc]").
@@ -1401,7 +1401,7 @@ Proof.
     destruct (mt_changed !! a) as [vobj'|] eqn:Hlookup_old.
     - rewrite Hlookup_old //=.
     - destruct obj'.
-      rewrite lookup_insert
+      rewrite lookup_insert_eq
         /object_to_versioned /modified /mspec.modified //=.
   }
   {
@@ -1431,7 +1431,7 @@ Proof.
   }
   split; last by reflexivity.
   destruct obj'.
-  rewrite lookup_insert
+  rewrite lookup_insert_eq
     /object_to_versioned /modified /mspec.modified //=.
 Qed.
 
@@ -1608,9 +1608,9 @@ Proof.
       rewrite fmap_insert insert_id;
         last by rewrite lookup_fmap Hlookup_old //=.
       iFrame.
-      rewrite -insert_delete_insert -!(big_sepM_fmap modified) fmap_insert.
+      rewrite -insert_delete_eq -!(big_sepM_fmap modified) fmap_insert.
       iApply big_sepM_insert;
-        first by rewrite lookup_fmap lookup_delete //=.
+        first by rewrite lookup_fmap lookup_delete_eq //=.
       iFrame.
       rewrite /modified /mspec.modified /=.
       destruct obj'.

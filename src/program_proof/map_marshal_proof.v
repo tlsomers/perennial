@@ -99,7 +99,7 @@ Proof.
   destruct (decide (k0 = k)).
   {
     rewrite e.
-    repeat rewrite lookup_insert.
+    repeat rewrite lookup_insert_eq.
     simpl.
     done.
   }
@@ -188,7 +188,7 @@ Proof.
      split; last split.
      - rewrite fmap_app. apply NoDup_app. split; first done.
        simpl. split; last by apply NoDup_singleton.
-       intros k' Hk' ->%elem_of_list_singleton. done.
+       intros k' Hk' ->%list_elem_of_singleton. done.
      - rewrite list_to_map_snoc //. rewrite Hls.
        change data with ((λ v _, v) data v).
        rewrite map_insert_zip_with. rewrite insert_id //.
@@ -259,9 +259,8 @@ Proof.
     rewrite list_to_map_snoc //.
     rewrite fmap_app NoDup_app in Hnodup.
     destruct Hnodup as (_ & Hnin & _). intros Hin. eapply Hnin; first done.
-    eapply elem_of_list_fmap_1_alt.
-    - apply elem_of_list_here.
-    - done. }
+    apply list_elem_of_here.
+  }
   iIntros "(I & Hli)". iNamed "I". wp_load. wp_pures. iApply "HΦ". iModIntro.
   rewrite take_ge.
   2:{ rewrite -Map.size_list_to_map // Hls. word. }
@@ -341,7 +340,7 @@ Proof.
      split; last split.
      - rewrite fmap_app. apply NoDup_app. split; first done.
        simpl. split; last by apply NoDup_singleton.
-       intros k' Hk' ->%elem_of_list_singleton. done.
+       intros k' Hk' ->%list_elem_of_singleton. done.
      - rewrite list_to_map_snoc //. rewrite Hls //.
      - rewrite Henc. rewrite -!app_assoc. repeat f_equal.
        rewrite /encode_u64_maplist flat_map_app. f_equal.
@@ -411,9 +410,8 @@ Proof.
     rewrite list_to_map_snoc //.
     rewrite fmap_app NoDup_app in Hnodup.
     destruct Hnodup as (_ & Hnin & _). intros Hin. eapply Hnin; first done.
-    eapply elem_of_list_fmap_1_alt.
-    - apply elem_of_list_here.
-    - done. }
+    eapply list_elem_of_here.
+  }
   iIntros "(I & Hli)". iNamed "I". wp_load. wp_pures. iApply "HΦ". iModIntro.
   rewrite take_ge.
   2:{ rewrite -Map.size_list_to_map // Hls. word. }
