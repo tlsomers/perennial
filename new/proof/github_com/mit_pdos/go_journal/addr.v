@@ -105,16 +105,16 @@ Section flatid2addr.
   Proof.
     rewrite /flatid_addr_map; split; intros.
     - destruct (decide (a = a0)); subst.
-      + rewrite lookup_insert in H1; inversion H1; clear H1; subst.
-        repeat rewrite -> lookup_insert; eauto.
+      + rewrite lookup_insert_eq in H1; inversion H1; clear H1; subst.
+        repeat rewrite -> lookup_insert_eq; eauto.
       + rewrite -> lookup_insert_ne in H1 by eauto.
         apply H in H1; intuition eauto.
         rewrite -> lookup_insert_ne by (apply addr2flat_ne; eauto).
         eauto.
     - destruct (decide (addr2flat a = fa)); subst.
-      + rewrite lookup_insert in H1; inversion H1; clear H1; subst.
+      + rewrite lookup_insert_eq in H1; inversion H1; clear H1; subst.
         eexists.
-        repeat rewrite -> lookup_insert; eauto.
+        repeat rewrite -> lookup_insert_eq; eauto.
       + rewrite -> lookup_insert_ne in H1 by eauto.
         apply H in H1; destruct H1. intuition eauto.
         exists x; intuition eauto.
@@ -131,11 +131,11 @@ Section flatid2addr.
     intros.
     destruct H.
     edestruct H.
-    { erewrite lookup_insert; eauto. }
+    { erewrite lookup_insert_eq; eauto. }
     intuition eauto.
     split; intros.
     - destruct (decide (a = a0)); subst.
-      { rewrite lookup_delete in H3; congruence. }
+      { rewrite lookup_delete_eq in H3; congruence. }
       rewrite lookup_delete_ne in H3; eauto.
       edestruct H.
       { rewrite lookup_insert_ne; eauto. }
@@ -143,7 +143,7 @@ Section flatid2addr.
       rewrite lookup_delete_ne; eauto.
       eapply addr2flat_ne; eauto.
     - destruct (decide (addr2flat a = fa)); subst.
-      { rewrite lookup_delete in H3; congruence. }
+      { rewrite lookup_delete_eq in H3; congruence. }
       rewrite lookup_delete_ne in H3; eauto.
       apply H0 in H3. destruct H3.
       exists x. intuition eauto.
@@ -163,12 +163,12 @@ Section flatid2addr.
     intros.
     destruct H.
     edestruct H0.
-    { erewrite lookup_insert; eauto. }
+    { erewrite lookup_insert_eq; eauto. }
     exists x.
     intuition eauto.
     split; intros.
     - destruct (decide (a = x)); subst.
-      { rewrite lookup_delete in H3; congruence. }
+      { rewrite lookup_delete_eq in H3; congruence. }
       rewrite lookup_delete_ne in H3; eauto.
       edestruct H; eauto.
       intuition eauto.
@@ -176,7 +176,7 @@ Section flatid2addr.
       rewrite lookup_delete_ne; eauto.
       eapply addr2flat_ne; eauto.
     - destruct (decide (fa = fa0)); subst.
-      { rewrite lookup_delete in H3; congruence. }
+      { rewrite lookup_delete_eq in H3; congruence. }
       rewrite lookup_delete_ne in H3; eauto.
       edestruct H0.
       { rewrite lookup_insert_ne; eauto. }
@@ -192,13 +192,13 @@ Section flatid2addr.
   Proof.
     rewrite /flatid_addr_map; split; intros.
     - destruct (decide (a = a0)); subst.
-      + rewrite lookup_delete in H1; congruence.
+      + rewrite lookup_delete_eq in H1; congruence.
       + rewrite -> lookup_delete_ne in H1 by eauto.
         apply H in H1; intuition eauto.
         rewrite -> lookup_delete_ne by (apply addr2flat_ne; eauto).
         eauto.
     - destruct (decide (addr2flat a = fa)); subst.
-      + rewrite lookup_delete in H1; congruence.
+      + rewrite lookup_delete_eq in H1; congruence.
       + rewrite -> lookup_delete_ne in H1 by eauto.
         apply H in H1; destruct H1.
         exists x; intuition eauto.
@@ -243,7 +243,7 @@ Section flatid2addr.
     - apply flatid_addr_insert_inv_1 in Hflatid.
       destruct Hflatid as (a & Hvalid & -> & Hamlookup & Hflatid).
       assert (delete (addr2flat a) m = m).
-      { rewrite delete_notin //. }
+      { rewrite delete_id //. }
       rewrite H0 in Hflatid.
       rewrite map_size_insert_None //.
       apply IHfm in Hflatid as ->.
@@ -280,9 +280,9 @@ Section map.
       iApply big_sepM_insert_delete.
       iSplitL "Ha".
       { iExists _; iFrame. done. }
-      rewrite delete_notin.
+      rewrite delete_id.
       2: { apply not_elem_of_list_to_map_1; eauto. }
-      rewrite -> (delete_notin (list_to_map _)) in H3.
+      rewrite -> (delete_id (list_to_map _)) in H3.
       2: { apply not_elem_of_list_to_map_1; eauto. }
       iDestruct ("IH" $! _ H5 H3 with "H") as "H".
       iFrame.
@@ -308,9 +308,9 @@ Section map.
       iApply big_sepM_insert_delete.
       iSplitL "Ha".
       { rewrite H0. iFrame. }
-      rewrite delete_notin.
+      rewrite delete_id.
       2: { apply not_elem_of_list_to_map_1; eauto. }
-      rewrite -> (delete_notin (list_to_map _)) in H6.
+      rewrite -> (delete_id (list_to_map _)) in H6.
       2: { apply not_elem_of_list_to_map_1; eauto. }
       iDestruct ("IH" $! _ H5 H6 with "H") as "H".
       iFrame.
@@ -321,15 +321,15 @@ End map.
 
 Section gmap_addr_by_block.
 
-  Variable (T : Type).
+  Variable (T : Type). 
 
   Definition gmap_addr_by_block (m : gmap addr T) : gmap u64 (gmap u64 T) :=
-    gmap_curry m.
+    map_curry (M1 := gmap _) (M2 := gmap _) m.
 
   Theorem gmap_addr_by_block_empty :
     gmap_addr_by_block ∅ = ∅.
   Proof.
-    rewrite /gmap_addr_by_block /gmap_curry.
+    rewrite /gmap_addr_by_block /map_curry.
     apply map_fold_empty.
   Qed.
 
@@ -352,9 +352,9 @@ Section gmap_addr_by_block.
     filter (λ x, P (fst x)) (gmap_addr_by_block m).
   Proof.
     induction m using map_ind.
-    - rewrite /gmap_addr_by_block /gmap_curry.
+    - rewrite /gmap_addr_by_block /map_curry.
       rewrite map_filter_empty.
-      rewrite map_fold_empty.
+      (* rewrite map_fold_empty. *)
       rewrite map_filter_empty. eauto.
     - destruct i as [b o].
       rewrite gmap_addr_by_block_insert; eauto; simpl.
@@ -381,7 +381,7 @@ Section gmap_addr_by_block.
           repeat rewrite gmap_curry_insert; eauto.
           2: rewrite map_lookup_filter_None; eauto.
           destruct (decide (i.1 = b)); subst.
-          { repeat rewrite lookup_insert. f_equal. f_equal. rewrite IHm. eauto. }
+          { repeat rewrite lookup_insert_eq. f_equal. f_equal. rewrite IHm. eauto. }
           repeat rewrite lookup_insert_ne; eauto.
         * rewrite map_filter_insert_not; eauto. rewrite IHm.
           rewrite gmap_curry_insert; eauto.
@@ -394,7 +394,7 @@ Section gmap_addr_by_block.
     gmap_addr_by_block m !! blkno = Some offmap ->
     offmap ≠ ∅.
   Proof.
-    intros. eapply gmap_curry_non_empty. eauto.
+    intros. eapply (map_curry_non_empty (M1 := gmap _) (M2 := gmap _)) in H. eauto.
   Qed.
 
   Theorem gmap_addr_by_block_lookup (m : gmap addr T) (a : addr) (v : T) :
@@ -428,7 +428,7 @@ Section gmap_addr_by_block.
         iApply "Hm".
         iApply big_sepM_insert.
         { simpl.
-          pose proof (lookup_gmap_curry m b o).
+          pose proof (lookup_map_curry m b o).
           rewrite H in H0. rewrite He in H0. simpl in H0.
           rewrite He. simpl. eauto. }
         rewrite He. iFrame.
@@ -450,15 +450,16 @@ Section gmap_addr_by_block.
     - iApply big_sepM_empty. done.
     - destruct i as [i0 i1].
       rewrite gmap_curry_insert; eauto; simpl.
-      destruct (gmap_curry m !! i0) eqn:He.
+      destruct (map_curry (M1 := gmap _) (M2 := gmap _) m !! i0) eqn:He.
       + iDestruct (big_sepM_insert_delete with "Hm") as "[Hi0 Hm]"; simpl.
         iDestruct (big_sepM_insert with "Hi0") as "[Hi1 Hi0]".
-        { rewrite -lookup_gmap_curry in H. rewrite He /= in H. done. }
+        { rewrite -lookup_map_curry in H. rewrite He /= in H. by rewrite He H. }
         iApply big_sepM_insert; eauto. iFrame.
         iDestruct (big_sepM_insert_delete with "[$Hm $Hi0]") as "Hm".
-        rewrite insert_id; eauto.
+        rewrite insert_id; try by rewrite He.
         iApply "IH"; iFrame.
       + iDestruct (big_sepM_insert with "Hm") as "[Hi0 Hm]"; eauto; simpl.
+        rewrite He.
         iDestruct (big_sepM_insert with "Hi0") as "[Hi1 _]".
         { rewrite lookup_empty; eauto. }
         iApply big_sepM_insert; eauto. iFrame.
@@ -472,34 +473,34 @@ Section gmap_addr_by_block.
   Proof.
     rewrite /gmap_addr_by_block.
     eapply set_eq; split; intros.
-    - destruct (decide (x ∈ dom (gmap_curry m0))); try set_solver.
-      destruct (decide (x ∈ dom (gmap_curry m1))); try set_solver.
+    - destruct (decide (x ∈ dom (map_curry (M1 := gmap _) (M2 := gmap _) m0))); try set_solver.
+      destruct (decide (x ∈ dom (map_curry (M1 := gmap _) (M2 := gmap _) m1))); try set_solver.
       exfalso.
-      assert (x ∉ dom (gmap_curry (m0 ∪ m1))); try set_solver.
+      assert (x ∉ dom (map_curry (M1 := gmap _) (M2 := gmap _) (m0 ∪ m1))); try set_solver.
 
       apply not_elem_of_dom in n.
       apply not_elem_of_dom in n0.
       apply not_elem_of_dom.
 
-      erewrite lookup_gmap_curry_None in n.
-      erewrite lookup_gmap_curry_None in n0.
-      erewrite lookup_gmap_curry_None; intros j.
+      erewrite lookup_map_curry_None in n.
+      erewrite lookup_map_curry_None in n0.
+      erewrite lookup_map_curry_None; intros j.
       specialize (n j). specialize (n0 j).
       eapply lookup_union_None; eauto.
 
-    - destruct (decide (x ∈ dom (gmap_curry (m0 ∪ m1)))); try set_solver.
+    - destruct (decide (x ∈ dom (map_curry (M1 := gmap _) (M2 := gmap _) (m0 ∪ m1)))); try set_solver.
       exfalso.
-      assert (x ∉ dom (gmap_curry m0) ∪ dom (gmap_curry m1)); try set_solver.
+      assert (x ∉ dom (map_curry (M1 := gmap _) (M2 := gmap _) m0) ∪ dom (map_curry (M1 := gmap _) (M2 := gmap _) m1)); try set_solver.
       apply not_elem_of_dom in n.
       apply not_elem_of_union; split; apply not_elem_of_dom.
 
-      + erewrite lookup_gmap_curry_None; intros j.
-        erewrite lookup_gmap_curry_None in n.
+      + erewrite lookup_map_curry_None; intros j.
+        erewrite lookup_map_curry_None in n.
         specialize (n j).
         eapply lookup_union_None in n. intuition.
 
-      + erewrite lookup_gmap_curry_None; intros j.
-        erewrite lookup_gmap_curry_None in n.
+      + erewrite lookup_map_curry_None; intros j.
+        erewrite lookup_map_curry_None in n.
         specialize (n j).
         eapply lookup_union_None in n. intuition.
   Qed.
@@ -511,10 +512,10 @@ Section gmap_addr_by_block.
   Proof.
     rewrite /gmap_addr_by_block.
     intros.
-    eapply gmap_curry_non_empty in H as H'.
+    eapply map_curry_non_empty in H as H'.
     eapply map_choose in H'. destruct H' as [i [x H']].
     assert (m0 !! (k, i) = Some x).
-    { rewrite -(lookup_gmap_curry m0). rewrite H. eauto. }
+    { rewrite -(lookup_map_curry m0). rewrite H. eauto. }
     assert ((m0 ∪ m1) !! (k, i) = Some x).
     { eapply lookup_union_Some_l; eauto. }
     eapply gmap_curry_lookup_exists in H2 as H2'.
@@ -524,17 +525,17 @@ Section gmap_addr_by_block.
     apply map_eq; intros j.
     destruct ((m0 ∪ m1) !! (k, j)) eqn:He.
     all: pose proof He as He'.
-    all: rewrite -lookup_gmap_curry H2' /= in He'.
+    all: rewrite -lookup_map_curry H2' /= in He'.
     all: rewrite He'; symmetry.
     2: {
       eapply lookup_union_None in He; intuition.
-      rewrite -lookup_gmap_curry H /= in H3.
-      rewrite -lookup_gmap_curry H0 /= in H4.
+      rewrite -lookup_map_curry H /= in H3.
+      rewrite -lookup_map_curry H0 /= in H4.
       eapply lookup_union_None; eauto.
     }
     eapply lookup_union_Some_raw in He; intuition.
-    { rewrite -lookup_gmap_curry H /= in H3. eapply lookup_union_Some_l; eauto. }
-    { rewrite -lookup_gmap_curry H /= in H4. rewrite -lookup_gmap_curry H0 /= in H5.
+    { rewrite -lookup_map_curry H /= in H3. eapply lookup_union_Some_l; eauto. }
+    { rewrite -lookup_map_curry H /= in H4. rewrite -lookup_map_curry H0 /= in H5.
       eapply lookup_union_Some_raw; eauto. }
   Qed.
 
@@ -544,15 +545,15 @@ Section gmap_addr_by_block.
   Proof.
     rewrite /gmap_addr_by_block.
     intros.
-    destruct (gmap_curry m1 !! k) eqn:Hk.
+    destruct (map_curry (M1 := gmap _) (M2 := gmap _) m1 !! k) eqn:Hk.
     {
-      eapply gmap_curry_non_empty in Hk as H'.
+      eapply map_curry_non_empty in Hk as H'.
       eapply map_choose in H'. destruct H' as [i [x H']].
       assert (m0 !! (k, i) = None).
-      { rewrite -(lookup_gmap_curry m0). rewrite H. eauto. }
+      { rewrite -(lookup_map_curry m0). rewrite H. eauto. }
       assert ((m0 ∪ m1) !! (k, i) = Some x).
       { rewrite lookup_union_r; eauto.
-        rewrite -(lookup_gmap_curry m1). rewrite Hk. eauto. }
+        rewrite -(lookup_map_curry m1). rewrite Hk. eauto. }
       eapply gmap_curry_lookup_exists in H1 as H1'.
       destruct H1' as [offmap [H1' H1'']].
       simpl in *.
@@ -560,22 +561,22 @@ Section gmap_addr_by_block.
       apply map_eq; intros j.
       destruct ((m0 ∪ m1) !! (k, j)) eqn:He.
       all: pose proof He as He'.
-      all: rewrite -lookup_gmap_curry H1' /= in He'.
+      all: rewrite -lookup_map_curry H1' /= in He'.
       all: rewrite He'; symmetry.
       2: {
         eapply lookup_union_None in He; intuition.
-        rewrite -lookup_gmap_curry H /= in H2.
-        rewrite -lookup_gmap_curry Hk /= in H3.
+        rewrite -lookup_map_curry H /= in H2.
+        rewrite -lookup_map_curry Hk /= in H3.
         eauto.
       }
       eapply lookup_union_Some_raw in He; intuition.
-      { rewrite -lookup_gmap_curry H /= in H2. congruence. }
-      { rewrite -lookup_gmap_curry H /= in H3. rewrite -lookup_gmap_curry Hk /= in H4. eauto. }
+      { rewrite -lookup_map_curry H /= in H2. congruence. }
+      { rewrite -lookup_map_curry H /= in H3. rewrite -lookup_map_curry Hk /= in H4. eauto. }
     }
     {
-      eapply lookup_gmap_curry_None; intros j.
-      eapply lookup_gmap_curry_None in H.
-      eapply lookup_gmap_curry_None in Hk.
+      eapply lookup_map_curry_None; intros j.
+      eapply lookup_map_curry_None in H.
+      eapply lookup_map_curry_None in Hk.
       eapply lookup_union_None; eauto.
     }
   Qed.
@@ -587,7 +588,7 @@ Section gmap_addr_by_block.
   Proof.
     rewrite /gmap_addr_by_block; intros.
     apply elem_of_dom. apply elem_of_dom in H0. destruct H0.
-    rewrite -lookup_gmap_curry. rewrite H /=. rewrite H0. eauto.
+    rewrite -lookup_map_curry. rewrite H /=. rewrite H0. eauto.
   Qed.
 
   Lemma gmap_addr_by_block_elem_of_2 m offmap blk off :
@@ -597,7 +598,7 @@ Section gmap_addr_by_block.
   Proof.
     rewrite /gmap_addr_by_block; intros.
     apply elem_of_dom. apply elem_of_dom in H0. destruct H0.
-    rewrite -lookup_gmap_curry in H0. rewrite H /= in H0.
+    rewrite -lookup_map_curry in H0. rewrite H /= in H0.
     rewrite H0. eauto.
   Qed.
 
@@ -611,21 +612,21 @@ Proof.
   eapply set_eq; intros x.
   rewrite /gmap_addr_by_block.
   rewrite !elem_of_dom.
-  destruct (gmap_curry m0 !! x) eqn:He0;
-    destruct (gmap_curry m1 !! x) eqn:He1.
+  destruct (map_curry (M1 := gmap _) (M2 := gmap _) m0 !! x) eqn:He0;
+    destruct (map_curry (M1 := gmap _) (M2 := gmap _) m1 !! x) eqn:He1.
   1: { split; intros; eauto. }
   3: { split; intros Hx; inversion Hx; inversion H0. }
   { exfalso.
-    eapply gmap_curry_non_empty in He0 as Hg. eapply map_choose in Hg. destruct Hg as [i [ix Hg]].
-    eapply lookup_gmap_curry_None in He1. rewrite <- not_elem_of_dom in He1.
+    eapply map_curry_non_empty in He0 as Hg. eapply map_choose in Hg. destruct Hg as [i [ix Hg]].
+    eapply lookup_map_curry_None in He1. rewrite <- not_elem_of_dom in He1.
     rewrite -H in He1. eapply not_elem_of_dom in He1.
-    rewrite -lookup_gmap_curry in He1. rewrite He0 /= in He1. erewrite Hg in He1. congruence.
+    rewrite -lookup_map_curry in He1. rewrite He0 /= in He1. erewrite Hg in He1. congruence.
   }
   { exfalso.
-    eapply gmap_curry_non_empty in He1 as Hg. eapply map_choose in Hg. destruct Hg as [i [ix Hg]].
-    eapply lookup_gmap_curry_None in He0. rewrite <- not_elem_of_dom in He0.
+    eapply map_curry_non_empty in He1 as Hg. eapply map_choose in Hg. destruct Hg as [i [ix Hg]].
+    eapply lookup_map_curry_None in He0. rewrite <- not_elem_of_dom in He0.
     rewrite H in He0. eapply not_elem_of_dom in He0.
-    rewrite -lookup_gmap_curry in He0. rewrite He1 /= in He0. erewrite Hg in He0. congruence.
+    rewrite -lookup_map_curry in He0. rewrite He1 /= in He0. erewrite Hg in He0. congruence.
   }
 Qed.
 
@@ -654,18 +655,18 @@ Proof.
   - rewrite gmap_addr_by_block_empty !map_zip_empty_l gmap_addr_by_block_empty fmap_empty //.
   - specialize (IHm1 (delete i m2)).
     assert (is_Some (m2 !! i)) as Hk2.
-    { apply H0. rewrite lookup_insert. eauto. }
+    { apply H0. rewrite lookup_insert_eq. eauto. }
     destruct Hk2 as [x2 Hkx2].
     replace m2 with (<[i:=x2]> (delete i m2)).
-    2: rewrite insert_delete //.
+    2: rewrite insert_delete_id //.
     rewrite gmap_addr_by_block_insert; eauto.
-    rewrite gmap_addr_by_block_insert. 2: rewrite lookup_delete //.
+    rewrite gmap_addr_by_block_insert. 2: rewrite lookup_delete_eq //.
     rewrite !map_zip_insert.
-    rewrite gmap_addr_by_block_insert. 2: rewrite map_zip_lookup_none_2 // lookup_delete //.
+    rewrite gmap_addr_by_block_insert. 2: rewrite map_zip_lookup_none_2 // lookup_delete_eq //.
     rewrite fmap_insert /=.
     rewrite -IHm1.
     2: { intro k. destruct (decide (k = i)); subst.
-      { rewrite H. rewrite lookup_delete. split; intro Hx; inversion Hx; congruence. }
+      { rewrite H. rewrite lookup_delete_eq. split; intro Hx; inversion Hx; congruence. }
       specialize (H0 k). rewrite lookup_insert_ne in H0; eauto. rewrite lookup_delete_ne; eauto.
     }
     f_equal.
@@ -693,13 +694,13 @@ Proof.
     2: {
       intros.
       destruct (EqDecision0 k i).
-      { subst. rewrite H0. rewrite lookup_delete. split; intros Hx; destruct Hx; congruence. }
+      { subst. rewrite H0. rewrite lookup_delete_eq. split; intros Hx; destruct Hx; congruence. }
       { rewrite lookup_delete_ne; eauto. rewrite -H1. rewrite lookup_insert_ne; eauto. }
     }
     rewrite dom_delete_L.
     rewrite -union_difference_L; eauto.
     apply singleton_subseteq_l.
-    apply elem_of_dom. apply H1. rewrite lookup_insert. done.
+    apply elem_of_dom. apply H1. rewrite lookup_insert_eq. done.
 Qed.
 
 Theorem dom_lookup_eq_2 {K A B} `{Countable K} (m1 : gmap K A) (m2 : gmap K B):
@@ -739,9 +740,9 @@ Proof.
   simpl.
   apply dom_lookup_eq; intros.
   apply (f_equal (λ x, x ≫= lookup k0)) in Hlookup1.
-  rewrite lookup_gmap_curry in Hlookup1.
+  rewrite lookup_map_curry in Hlookup1.
   apply (f_equal (λ x, x ≫= lookup k0)) in Hlookup2.
-  rewrite lookup_gmap_curry in Hlookup2.
+  rewrite lookup_map_curry in Hlookup2.
   simpl in *.
   rewrite -Hlookup1 -Hlookup2.
   apply dom_lookup_eq_2.
@@ -755,30 +756,29 @@ Proof.
   rewrite /gmap_addr_by_block.
   apply map_eq; intros.
   rewrite lookup_fmap.
-  destruct (gmap_curry m !! i) eqn:He; simpl.
-  - destruct (gmap_curry (f <$> m) !! i) eqn:Hee.
+  destruct (map_curry (M1 := gmap _) (M2 := gmap _) m !! i) eqn:He; simpl.
+  - destruct (map_curry (M1 := gmap _) (M2 := gmap _) (f <$> m) !! i) eqn:Hee.
     2: {
-      eapply gmap_curry_non_empty in He as He'.
+      eapply map_curry_non_empty in He as He'.
       apply map_choose in He'. destruct He' as [j' [x' He']].
-      erewrite lookup_gmap_curry_None in Hee.
+      erewrite lookup_map_curry_None in Hee.
       specialize (Hee j'). rewrite lookup_fmap in Hee.
-      rewrite -lookup_gmap_curry He /= He' /= in Hee.
+      rewrite -lookup_map_curry He /= He' /= in Hee.
       congruence.
     }
-    rewrite Hee.
     f_equal.
     apply map_eq; intros.
 
     replace (g0 !! i0) with ((f <$> m) !! (i, i0)).
-    2: { rewrite -lookup_gmap_curry Hee /=. done. }
+    2: { rewrite -lookup_map_curry Hee /=. done. }
 
     rewrite ?lookup_fmap.
     replace (g !! i0) with (m !! (i, i0)).
-    2: { rewrite -lookup_gmap_curry He /=. done. }
+    2: { rewrite -lookup_map_curry He /=. done. }
     done.
 
-  - erewrite lookup_gmap_curry_None in He.
-    erewrite lookup_gmap_curry_None. intros j. specialize (He j).
+  - erewrite lookup_map_curry_None in He.
+    erewrite lookup_map_curry_None. intros j. specialize (He j).
     rewrite lookup_fmap. rewrite He. done.
 Qed.
 

@@ -64,7 +64,7 @@ Definition block0_map : gmap u64 object :=
   {[W64 0 := existT _ (bufBlock block0)]}.
 
 Definition kind_heap0 (kinds: gmap u64 bufDataKind) : gmap addr object :=
-  gmap_uncurry ((λ K, match K with
+  map_uncurry (M1:=gmap _) (M2:=gmap _) ((λ K, match K with
                    | KindBit => bit0_map
                    | KindInode => inode0_map
                    | KindBlock => block0_map
@@ -173,7 +173,7 @@ Proof.
   rewrite /bit0_map.
   rewrite lookup_gset_to_gmap_Some.
   rewrite elem_of_list_to_set.
-  rewrite elem_of_list_fmap.
+  rewrite list_elem_of_fmap.
   setoid_rewrite elem_of_seqZ.
   change block_bytes with (Z.to_nat 4096).
   split; intros.
@@ -193,7 +193,7 @@ Proof.
   rewrite /inode0_map.
   rewrite lookup_gset_to_gmap_Some.
   rewrite elem_of_list_to_set.
-  rewrite elem_of_list_fmap.
+  rewrite list_elem_of_fmap.
   setoid_rewrite elem_of_seqZ.
   split.
   - intuition (subst; auto).
@@ -238,7 +238,7 @@ Proof.
   apply lookup_gset_to_gmap_None in H0.
   apply H0.
   apply elem_of_list_to_set.
-  apply elem_of_list_lookup.
+  apply list_elem_of_lookup.
   exists 0%nat; auto.
 Qed.
 
@@ -246,7 +246,7 @@ Lemma block0_map_not_empty : ∅ ≠ block0_map.
 Proof.
   intro H. assert (block0_map !! (W64 0) = None).
   { rewrite -H. apply lookup_empty. }
-  rewrite lookup_singleton in H0. congruence.
+  rewrite lookup_singleton_eq in H0. congruence.
 Qed.
 
 Hint Resolve bit0_map_not_empty : notempty.
@@ -297,7 +297,7 @@ Proof.
   { apply valid_off_bit_trivial; eauto. }
   rewrite /bufDataT_in_block /=.
   apply elem_of_list_to_set in H1.
-  apply elem_of_list_lookup in H1 as [i ?].
+  apply list_elem_of_lookup in H1 as [i ?].
   fmap_Some in H1.
   apply lookup_seqZ in H1 as [-> ?].
   intuition eauto.
@@ -336,7 +336,7 @@ Proof.
   intros.
   eapply lookup_gset_to_gmap_Some in H. intuition subst.
   apply elem_of_list_to_set in H1.
-  apply elem_of_list_lookup in H1 as [i Hlookup].
+  apply list_elem_of_lookup in H1 as [i Hlookup].
   fmap_Some in Hlookup.
   apply lookup_seqZ in Hlookup as [-> ?].
   rewrite Z.add_0_l.
@@ -464,7 +464,7 @@ Proof.
     iDestruct (big_sepM2_sepM_1 with "Hmetas") as "Hmetas".
 
     rewrite /kind_heap0 /gmap_addr_by_block.
-    rewrite gmap_curry_uncurry_non_empty; last first.
+    rewrite map_curry_uncurry_non_empty; last first.
     {
       intros i x Hix. rewrite lookup_fmap in Hix.
       apply fmap_Some_1 in Hix. destruct Hix. intuition idtac.
@@ -506,7 +506,7 @@ Proof.
     assert (is_Some (γ.(txn_kinds) !! W64 (513 + Z.of_nat hb_i))) as Hs; eauto.
     eapply elem_of_dom in Hs. rewrite Hkinds_dom in Hs.
     eapply elem_of_list_to_set in Hs.
-    eapply elem_of_list_fmap_2 in Hs. destruct Hs as [y [Hs0 Hs1]]. rewrite Hs0.
+    eapply list_elem_of_fmap_1 in Hs. destruct Hs as [y [Hs0 Hs1]]. rewrite Hs0.
     eapply elem_of_seqZ in Hs1. intuition subst.
     replace (uint.Z (W64 y)) with y by word.
     rewrite -Z.mul_assoc. rewrite -Z.mul_assoc in Hbound.
@@ -518,7 +518,7 @@ Proof.
     rewrite /bufDataTs_in_crashblock.
 
     rewrite /kind_heap0 /gmap_addr_by_block.
-    rewrite gmap_curry_uncurry_non_empty; last first.
+    rewrite map_curry_uncurry_non_empty; last first.
     {
       intros i x Hix. rewrite lookup_fmap in Hix.
       apply fmap_Some_1 in Hix. destruct Hix. intuition idtac.
@@ -551,7 +551,7 @@ Proof.
       assert (is_Some (γ.(txn_kinds) !! x)) as Hs; eauto.
       eapply elem_of_dom in Hs. rewrite Hkinds_dom in Hs.
       eapply elem_of_list_to_set in Hs.
-      eapply elem_of_list_fmap_2 in Hs. destruct Hs as [y [Hs0 Hs1]].
+      eapply list_elem_of_fmap_1 in Hs. destruct Hs as [y [Hs0 Hs1]].
       eapply elem_of_seqZ in Hs1. intuition subst; word.
     }
 
@@ -562,7 +562,7 @@ Proof.
     assert (is_Some (γ.(txn_kinds) !! x)) as Hs; eauto.
     eapply elem_of_dom in Hs. rewrite Hkinds_dom in Hs.
     eapply elem_of_list_to_set in Hs.
-    eapply elem_of_list_fmap_2 in Hs. destruct Hs as [y [Hs0 Hs1]].
+    eapply list_elem_of_fmap_1 in Hs. destruct Hs as [y [Hs0 Hs1]].
     eapply elem_of_seqZ in Hs1. intuition subst.
     replace (uint.Z (W64 y)) with y by word.
     rewrite -Z.mul_assoc. rewrite -Z.mul_assoc in Hbound.
