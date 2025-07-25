@@ -57,9 +57,9 @@ Proof.
   intros Hsubseteq.
   apply (iffRL (elem_of_subseteq _ _)).
   intros y Hin.
-  destruct (list_elem_of_fmap_1 _ _ _ Hin) as (x&->&Hx).
+  destruct (list_elem_of_fmap_1 _ _ _ Hin) as (x&Hy&Hx).
   apply ((iffLR (elem_of_subseteq _ _)) Hsubseteq x) in Hx.
-  by apply list_elem_of_fmap_2.
+  apply (list_elem_of_fmap_2' _ _ _ _ Hx Hy).
 Qed.
 
 Lemma drop_subseteq {A} (l: list A) n :

@@ -78,7 +78,7 @@ Section lemmas.
       rewrite ?map_filter_insert.
       destruct (decide (P (k1, x1))); destruct (decide (Q (k1, x2))); try intuition.
       * rewrite ?map_size_insert_None ?IH ?map_lookup_filter_None; eauto.
-      * rewrite !delete_id //; eauto.
+      * rewrite ?delete_id //; eauto.
   Qed.
 
 End lemmas.

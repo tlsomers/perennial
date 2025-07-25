@@ -585,7 +585,7 @@ Proof.
   rewrite lookup_insert_ne.
   { apply IHupdlist_olds; eauto. }
   intro H. rewrite H in H3. apply H3.
-  eapply list_elem_of_fmap; eauto.
+  eapply list_elem_of_fmap_2'; eauto.
 Qed.
 
 Definition txn_crashstates_matches_pointsto σl γ σl' a v :

@@ -842,12 +842,12 @@ Section map_uncurry.
       intros.
       destruct j1, j2.
       destruct (decide (a = a0)); subst.
-      - repeat rewrite partial_alter_partial_alter_eq.
+      - rewrite !partial_alter_partial_alter_eq.
         apply partial_alter_ext.
         destruct x; intros; simpl.
         + rewrite insert_insert_ne; eauto. congruence.
         + rewrite insert_insert_ne; eauto. congruence.
-      - rewrite <- partial_alter_partial_alter_ne; eauto.
+      - rewrite partial_alter_partial_alter_ne; eauto.
     }
 
     simpl.
@@ -909,10 +909,10 @@ Proof.
     rewrite /gmap_curry.
     rewrite gmap_curry_insert_delete //; last first.
     iDestruct ("IH" with "H") as "H".
-    rewrite big_sepM_insert ?lookup_delete //.
+    rewrite big_sepM_insert ?lookup_delete_eq //.
     destruct (map_curry m1 !! i.1) as [m1'|] eqn:Hlookup.
     ** assert (Hdel: map_curry (M2:=gmap K2) m1 = <[i.1 := m1']> (delete i.1 (map_curry (M1:=gmap K1) (M2:=gmap K2) m1))).
-       { rewrite insert_delete //=. }
+       { rewrite insert_delete_id //=. }
        iEval (rewrite Hdel) in "H".
        rewrite big_sepM_insert ?lookup_delete_eq //.
        iDestruct "H" as "(H1&H2)".

@@ -288,7 +288,7 @@ Proof.
     end. by case (vs !! _); simplify_option_eq.
   - destruct (decide _) as [[??]|[<-%dec_stable|[<-%dec_stable ?]]%not_and_l_alt].
     + rewrite !Hins // !Hdel. eauto with f_equal.
-    + rewrite /= delete_insert_eq delete_delete_eq //.
+    + by rewrite /= delete_insert_eq delete_delete_eq.
     + by rewrite /= Hins // delete_insert_eq !Hdel delete_delete_eq.
 Qed.
 Lemma subst_map_insert' x v vs e:

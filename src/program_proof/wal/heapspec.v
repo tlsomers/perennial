@@ -1504,8 +1504,9 @@ Proof.
   rewrite <- list_elem_of_In in H2.
   rewrite <- list_elem_of_In.
   eapply list_elem_of_fmap_1 in H2.
-  destruct H2 as [? [-> H4]].
-  eapply list_elem_of_fmap_2; eauto.
+  destruct H2.
+  intuition.
+  eapply list_elem_of_fmap_2'; eauto.
   apply list_elem_of_lookup_1 in H4.
   destruct H4 as [i H4].
   apply lookup_lt_Some in H4 as Hlen.

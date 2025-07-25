@@ -187,8 +187,8 @@ Local Lemma wptp0_progress Φ Φc κs' n e1 t1 κs t2 σ1 g1 D σ2 g2 e2 :
    ⌜ not_stuck e2 σ2 g2 ⌝.
 Proof.
   iIntros (Hstep Hel) "Hσ Hg He Ht HNC".
-  iDestruct (wptp_steps with "Hσ Hg He Ht HNC") as "Hwp"; first done.
-  iApply (physical_stepN_wand with "[$]").
+  iMod (wptp_steps with "Hσ Hg He Ht HNC") as "Hwp"; first done.
+  iModIntro. iApply (physical_stepN_wand with "Hwp").
   iDestruct 1 as (e2' t2' ?) "(Hσ & Hg & Hwp & Ht & HNC)"; simplify_eq/=.
   apply elem_of_cons in Hel as [<-|(t1''&t2''&->)%list_elem_of_split].
   - iPoseProof (wpc_safe with "Hσ Hg Hwp HNC") as "H".

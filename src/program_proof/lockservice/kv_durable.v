@@ -118,7 +118,7 @@ Proof using Type*.
         split; last apply not_elem_of_nil.
         destruct (decide (x = k)) as [->|]; last done.
         exfalso.
-        apply list_elem_of_fmap_2 in H1 as [ [k0 v0] [Hk Hp]].
+        apply list_elem_of_fmap_1 in H1 as [ [k0 v0] [Hk Hp]].
         simpl in Hk.
         eapply (elem_of_list_to_map_1 (M:=gmap _)) in Hnodup; eauto.
         replace (list_to_map l) with (mdone) in Hnodup by eauto.

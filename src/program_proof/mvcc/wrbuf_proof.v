@@ -250,7 +250,8 @@ Proof.
     unfold spec_wrbuf__Lookup.
     rewrite Hmods.
     rewrite -elem_of_list_to_map; last by apply NoDup_wrent_to_key_dbval.
-    apply list_elem_of_fmap. exists ent. split.
+    apply list_elem_of_fmap_2' with ent.
+    { by apply list_elem_of_lookup_2 with (uint.nat pos). }
     { rewrite -Hkey. auto using surjective_pairing. }
     { by apply list_elem_of_lookup_2 with (uint.nat pos). }
   }

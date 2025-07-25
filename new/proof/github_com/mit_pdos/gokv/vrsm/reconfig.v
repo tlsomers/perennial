@@ -157,7 +157,7 @@ Proof using waitgroupG0.
   }
   iMod (ghost_init_primary with "Hprop_lb Hprop_facts His_conf Hacc_ro Hskip Hprop") as "Hprim".
   {
-    apply list_elem_of_fmap_1.
+    apply list_elem_of_fmap_2.
     by eapply list_elem_of_lookup_2. }
   { word. }
   { word. }

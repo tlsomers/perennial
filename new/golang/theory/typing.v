@@ -1,5 +1,6 @@
 From Coq Require Import Logic.FunctionalExtensionality.
 From Coq Require Import Program.Equality.
+From stdpp Require Import list.
 From Ltac2 Require Import Ltac2.
 Set Default Proof Mode "Classic".
 From New.golang.defn Require Export typing.

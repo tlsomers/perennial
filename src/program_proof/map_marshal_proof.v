@@ -259,8 +259,9 @@ Proof.
     rewrite list_to_map_snoc //.
     rewrite fmap_app NoDup_app in Hnodup.
     destruct Hnodup as (_ & Hnin & _). intros Hin. eapply Hnin; first done.
-    apply list_elem_of_here.
-  }
+    eapply list_elem_of_fmap_2'.
+    - apply list_elem_of_here.
+    - done. }
   iIntros "(I & Hli)". iNamed "I". wp_load. wp_pures. iApply "HΦ". iModIntro.
   rewrite take_ge.
   2:{ rewrite -Map.size_list_to_map // Hls. word. }
@@ -410,8 +411,9 @@ Proof.
     rewrite list_to_map_snoc //.
     rewrite fmap_app NoDup_app in Hnodup.
     destruct Hnodup as (_ & Hnin & _). intros Hin. eapply Hnin; first done.
-    eapply list_elem_of_here.
-  }
+    eapply list_elem_of_fmap_2'.
+    - apply list_elem_of_here.
+    - done. }
   iIntros "(I & Hli)". iNamed "I". wp_load. wp_pures. iApply "HΦ". iModIntro.
   rewrite take_ge.
   2:{ rewrite -Map.size_list_to_map // Hls. word. }
