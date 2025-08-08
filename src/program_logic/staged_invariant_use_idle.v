@@ -57,7 +57,8 @@ Proof using later_tokG0.
   iIntros "Hsv".
   iLöb as "IH" forall (e).
   iDestruct "Hsv" as (E2 ? mj_ishare mj_ushare ????? Hsub)
-    "(%Hnval&%Hinvalid&%Heq_mj&%Hle2&%Hinvalid2&Hown&Hownstat&#Hsaved1&#Hsaved2&[Hltok Htoklc]&Hitok&%Hlt2&#Hinv)".
+    "(%Hnval&%Hinvalid&%Heq_mj&%Hle2&%Hinvalid2&Hown&Hownstat&#Hsaved1&#Hsaved2&Htok&Hitok&%Hlt2&#Hinv)".
+  iDestruct (later_tokN_use with "[$]") as "[[?_] Hcl]".
   iEval (rewrite wpc0_unfold).
   rewrite /wpc_pre. iSplit; last first.
   {
@@ -76,7 +77,7 @@ Proof using later_tokG0.
     iDestruct (saved_prop_agree with "Hsaved1 Hsaved1'") as "Hequiv1".
     iDestruct (saved_prop_agree with "Hsaved2 Hsaved2'") as "Hequiv2".
 
-    iApply (lc_fupd2_add_laterN with "Htoklc"). iNext. iNext.
+    iApply (lc_fupd2_add_laterN with "[$]"). iNext. iNext.
     iDestruct "Hinner" as "[(%&HPs&Hs)|Hfin]"; last first.
     {
       iDestruct "Hfin" as "(HPR&Hrest)".
@@ -146,7 +147,7 @@ Proof using later_tokG0.
     iDestruct (saved_prop_agree with "Hsaved1 Hsaved1'") as "Hequiv1".
     iDestruct (saved_prop_agree with "Hsaved2 Hsaved2'") as "Hequiv2".
 
-    iApply (lc_fupd2_add_laterN with "Htoklc"). iNext. iNext.
+    iApply (lc_fupd2_add_laterN with "[$]"). iNext. iNext.
     iDestruct "Hinner" as "[(%Hlt''&HPs&Hs)|Hfin]"; last first.
     {
       iDestruct "Hfin" as "(HPR&HC&Hrest)".
@@ -168,10 +169,9 @@ Proof using later_tokG0.
     replace (⊤ ∖ D ∖ E2) with (⊤ ∖ (E2 ∪ D)) by set_solver.
     iDestruct ("Hwp" with "[$] [$] [$]") as "Hwp".
     iModIntro. iSplit; [by iLeft in "Hwp"|iRight in "Hwp"].
-    iIntros (e2 ????).
-    iApply (physical_step_tr_use with "[$]").
+    iIntros (e2 ????). iMod "Hcl" as "_".
     iApply (physical_step_wand with "(Hwp [//])").
-    iIntros "($&Hg&H&Hefs&HNC) H⧗ H£ !>".
+    iIntros "($&Hg&H&Hefs&HNC) [[Htok _]_]".
     destruct (to_val e2) eqn:Heq_val.
     {
       iEval (rewrite wpc0_unfold /wpc_pre) in "H".
@@ -198,14 +198,7 @@ Proof using later_tokG0.
       iMod ("Hpost" with "[-Hefs HNC Hclo Hg_inv_clo HQnew Hwand_new Hown' Hstatus' Hg Hitok_ishare]") as "Hpost".
       {
           iExists _, _, _, _, _, _. iFrame "∗".
-          iFrame "Hsaved1''".
-          iFrame "Hsaved2''".
-          iSplitL "H⧗ H£".
-          { assert (2 ≤ f 2) by (pose proof (f_exp 2); lia).
-            iDestruct (lc_weaken with "H£") as "$"; first done.
-            by iApply (tr_weaken with "H⧗").
-          }
-
+          iFrame "Hsaved1'' Hsaved2'' ∗".
           iExists _, _. iFrame "#". iPureIntro.
           eapply (Qp.lt_le_trans _ mj_wp); naive_solver.
       }
@@ -279,11 +272,6 @@ Proof using later_tokG0.
     { iPureIntro. rewrite /mj_wp. naive_solver. }
     iSplit; first eauto.
     iSplit; first eauto.
-    iSplit.
-    { assert (2 ≤ f 2) by (pose proof (f_exp 2); lia).
-      iDestruct (lc_weaken with "H£") as "$"; first done.
-      by iApply (tr_weaken with "H⧗").
-    }
     iSplit; first eauto.
     iExact "Hinv".
   }
@@ -298,7 +286,7 @@ Lemma wpc_staged_inv E1 e Φ Φc Qs P :
   ⊢ WPC e @ E1 {{ Φ }} {{ Φc }}.
 Proof using later_tokG0.
   iIntros (Hnval) "(Hstaged&Hwp)".
-  iDestruct "Hstaged" as (E2 ??? γprop γprop') "(Hown&Hownstat&#Hsaved1&#Hsaved2&[Hltok Htoklc]&Hitok&Hinv)".
+  iDestruct "Hstaged" as (E2 ??? γprop γprop') "(Hown&Hownstat&#Hsaved1&#Hsaved2&Htok&Hitok&Hinv)".
   iDestruct "Hinv" as (mj_wp_init mj_ishare Hlt) "#Hinv".
   rewrite /staged_inv.
   rewrite wpc_eq /wpc_def. iIntros (mj).
@@ -331,8 +319,9 @@ Proof using later_tokG0.
 
   iDestruct (saved_prop_agree with "Hsaved1 Hsaved1'") as "Hequiv1".
   iDestruct (saved_prop_agree with "Hsaved2 Hsaved2'") as "Hequiv2".
+  iDestruct (later_tokN_use with "[$]") as "[[?_] Hcl]".
 
-  iApply (lc_fupd2_add_laterN with "Htoklc"). iNext. iNext.
+  iApply (lc_fupd2_add_laterN with "[$]"). iNext. iNext.
   iDestruct "Hinner" as "[HPs|Hfin]"; last first.
   { (* Impossible, since we have NC token. *)
     iDestruct "Hfin" as "(_&HC&_)". iDestruct (NC_C with "[$] [$]") as %[]. }
@@ -375,10 +364,9 @@ Proof using later_tokG0.
   replace (⊤ ∖ D ∖ E2) with (⊤ ∖ (E2 ∪ D)) by set_solver.
   iDestruct ("Hwp" with "[$] [$] [$]") as "Hwp".
   iModIntro. iSplit; [by iLeft in "Hwp"|iRight in "Hwp"].
-  iIntros (e2 ????).
-  iApply (physical_step_tr_use with "[$]").
+  iIntros (e2 ????). iMod "Hcl" as "_".
   iApply (physical_step_wand with "(Hwp [//])").
-  iIntros "($&Hg&H&Hefs&HNC) H⧗ H£ !>".
+  iIntros "($&Hg&H&Hefs&HNC) [[Htok _] _]".
   destruct (to_val e2) eqn:Heq_val.
   {
     iEval (rewrite wpc0_unfold /wpc_pre) in "H".
@@ -407,12 +395,6 @@ Proof using later_tokG0.
         iExists _, _, _, _, _, _. iFrame "∗".
         iFrame "Hsaved1''".
         iFrame "Hsaved2''".
-        iSplitL "H⧗ H£".
-        { assert (2 ≤ f 2) by (pose proof (f_exp 2); lia).
-          iDestruct (lc_weaken with "H£") as "$"; first done.
-          by iApply (tr_weaken with "H⧗").
-        }
-
         iExists _, _. iFrame "#". iPureIntro.
         naive_solver.
     }
@@ -517,11 +499,6 @@ Proof using later_tokG0.
     { iPureIntro. rewrite /mj_wp.
       etransitivity; first eapply Qp.le_min_l.
       eapply Qp.le_min_r. }
-    iSplit.
-    { assert (2 ≤ f 2) by (pose proof (f_exp 2); lia).
-      iDestruct (lc_weaken with "H£") as "$"; first done.
-      by iApply (tr_weaken with "H⧗").
-    }
     iSplit; first eauto.
     iExact "Hinv".
   }

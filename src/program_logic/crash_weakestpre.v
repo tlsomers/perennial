@@ -9,6 +9,7 @@ From Perennial.algebra Require Export own_discrete.
 From Perennial.base_logic.lib Require Export ncfupd.
 From Perennial.program_logic Require Export language cfupd physical_step.
 From Perennial.program_logic Require ectx_language.
+From Perennial.Helpers Require Import ipm.
 From iris.prelude Require Import options.
 Import uPred.
 
@@ -22,8 +23,7 @@ Class irisGS (Λ : language) (Σ : gFunctors) := IrisGS {
 
   (** The global state interpretation is a whole-system invariant that should
   hold in between each step of reduction. Here [global_state Λ] is the global
-  state, the [nat] is the number of steps already performed by the system, and
-  [list Λobservation] are the remaining observations.
+  state, and [list Λobservation] are the remaining observations.
   The fracR and the coPset are relevant for crash borrows; also see later_res
   and private_invariants *)
   global_state_interp : global_state Λ → fracR → coPset → list (observation Λ) → iProp Σ;
@@ -32,38 +32,10 @@ Class irisGS (Λ : language) (Σ : gFunctors) := IrisGS {
   heap_lang, this will simply be [True]. However, it is useful if one wants to
   keep track of resources precisely, as in e.g. Iron. *)
   fork_post : val Λ → iProp Σ;
-
-  (* (** Number of additional logical steps (i.e., later modality in the
-  definition of WP) per physical step, depending on the physical steps
-  counter. In addition to these steps, the definition of WP adds one
-  extra later per physical step to make sure that there is at least
-  one later for each physical step. *)
-  num_laters_per_step : nat → nat;
-
-  (** Further inflate how many laters we generate per step. *)
-  step_count_next : nat → nat; *)
-
-  (** When performing pure steps, the state interpretation needs to be
-  adapted for the change in the [ns] parameter.
-
-  Note that we use an empty-mask fancy update here. We could also use
-  a basic update or a bare magic wand, the expressiveness of the
-  framework would be the same. If we removed the modality here, then
-  the client would have to include the modality it needs as part of
-  the definition of [global_state_interp]. Since adding the modality as part
-  of the definition [global_state_interp_mono] does not significantly
-  complicate the formalization in Iris, we prefer simplifying the
-  client. *)
-  (* global_state_interp_mono g ns q D κs:
-    global_state_interp g ns q D κs ={∅}=∗ global_state_interp g (S ns) q D κs; *)
-
-  (* step_count_next_incr n : n ≤ step_count_next n *)
 }.
 Global Opaque iris_invGS.
 
 Global Arguments global_state_interp : simpl never.
-(* Global Arguments step_count_next : simpl never. *)
-
 
 (* [generationGS] captures the parameters that can change on each crash,
    and between machines in the distributed setting. *)
@@ -949,10 +921,7 @@ Proof.
     iSpecialize ("H" $! mj).
     iDestruct "H" as "(H&_)".
     iDestruct ("H" with "[$] [$] [$]") as "H".
-    iSplit.
-    { iMod (fupd2_mask_subseteq E1 (⊤ ∖ D)) as "Hclo"; try done.
-      by iDestruct "H" as "[>$ _]".
-    }
+    iSplit; [by iLeft in "H"|iRight in "H"].
     iIntros (e2 σ2 g2 efs Hstep).
     iApply (physical_step_fupd).
     iApply (physical_step_wand with "(H [//])").
@@ -976,7 +945,6 @@ Proof.
   iDestruct "H" as "(H&_)"; eauto.
   iIntros. iMod ("H" with "[$]").
   by iFrame.
-  (* iApply step_fupd2N_inner_later; eauto. iModIntro; iFrame. *)
 Qed.
 
 Lemma fupd_mask_cfupd E1 P:
@@ -987,6 +955,43 @@ Lemma intro_cfupd E1 P:
   P -∗ cfupd E1 P.
 Proof. iIntros "HP". iModIntro. eauto. Qed.
 
+Lemma wpc_use_step_strong s E1 E2 e Φ Φc Q Q' :
+  TCEq (to_val e) None → E2 ⊆ E1 →
+  (∀ P D, (|={E2|D}⧗=> P) -∗ (|={E1|D}⧗=> P ∗ Q ∧ Q')) ∧ Q' -∗
+  WPC e @ s; E2 {{  v, Q -∗ |NC={E1}=> Φ v }} {{ Q' -∗ |C={E1}=> Φc }} -∗
+  WPC e @ s; E1 {{ Φ }} {{ Φc }}.
+Proof.
+  rewrite !wpc_unfold /wpc_pre /=. iIntros (-> Hle) "Hlb Hwp".
+  iIntros (mj). iSpecialize ("Hwp" $! mj).
+  iSplit; last first.
+  { iIntros.
+    iDestruct ("Hwp" with "[$] [$]") as "H".
+    iMod (fupd2_mask_subseteq E2 _) as "Hclo"; [done..|].
+    iMod "H" as "[$ HQ]". iMod "Hclo".
+    iDestruct "Hlb" as "[_ HQ']".
+    by iMod ("HQ" with "HQ' [$]") as "$".
+  }
+  iDestruct "Hlb" as "[Hlb _]".
+  iDestruct "Hwp" as "[Hwp _]".
+  iIntros.
+  iSplit.
+  { iMod fupd_mask_subseteq; [done|].
+    iDestruct ("Hwp" with "[$] [$] [$]") as "[$ _]". }
+  iIntros.
+  iDestruct ("Hwp" with "[$] [$] [$] [//]") as "Hwp".
+  iApply (physical_step_wand with "[Hlb Hwp]").
+  - iApply "Hlb". iExact "Hwp".
+  - iIntros "(($ & $ & Hwp & $) & HQ)".
+    iApply (wpc0_strong_mono with "[$]"); [done|by destruct (to_val e2)|].
+    iSplit.
+    + iIntros (v) "HQ'".
+      iMod (ncfupd_mask_subseteq E1) as "Hclo"; first (destruct (to_val e2); set_solver).
+      iLeft in "HQ". by iMod ("HQ'" with "HQ") as "$".
+    + iIntros "HQ'".
+      iApply (cfupd_weaken_mask _ E1); first (destruct (to_val e2); set_solver).
+      iRight in "HQ". by iMod ("HQ'" with "HQ") as "$".
+Qed.
+
 Lemma wpc_step_fupd s E1 E2 e P P' Φ Φc :
   to_val e = None → E2 ⊆ E1 →
   (|={E1}[E2]▷=> P ∧ (|C={E2}=> P'))
@@ -994,40 +999,18 @@ Lemma wpc_step_fupd s E1 E2 e P P' Φ Φc :
   WPC e @ s; E2 {{ v, P ={E1}=∗ Φ v }} {{ P' -∗ Φc }} -∗
   WPC e @ s; E1 {{ Φ }} {{ Φc }}.
 Proof.
-  rewrite !wpc_unfold /wpc_pre. iIntros (-> ?) "HR H". iIntros (mj).
-  iSpecialize ("H" $! mj).
-  iSplit; last first.
-  - iDestruct "H" as "(_&H)".
-    iDestruct "HR" as "(_&HR)".
-    iIntros.
-    iSpecialize ("H" with "[$] [$]").
-    iDestruct (cfupd_fupd with "HR") as "HR".
-    iSpecialize ("HR" with "[$]").
-    iMod (fupd2_mask_subseteq E2 (⊤ ∖ D)) as "Hclo"; try done.
-    iMod "HR". iMod "H" as "[$ H]". iMod "Hclo". by iApply "H".
-  - iDestruct "H" as "(H&_)".
-    iIntros (q σ1 g1 D κ κs n) "Hσ Hg HNC".
-    iDestruct ("H" with "[$] [$] [$]") as "H".
+  iIntros (He ?) "H Hwp".
+  iApply (wpc_use_step_strong _ _ E2 _ _ _ P (|C={E2}=> P') with "[H] [Hwp]"); [rewrite He //|done|..].
+  - iSplit; [iLeft in "H"|by iRight in "H"].
+    iIntros (? ?) "Hstep". iMod "H". iApply (physical_step_wand_later with "Hstep").
+    iIntros "!> $". by iMod "H".
+  - iApply (wpc_strong_mono with "[$]"); try done.
     iSplit.
-    { iMod (fupd2_mask_subseteq E2 (⊤ ∖ D)) as "Hclo"; try done.
-      by iDestruct "H" as "[>$ _]".
-    }
-    iIntros.
-    iDestruct "HR" as "(HR&_)".
-    iApply (physical_step_atomic E2 (⊤ ∖ D)). iMod "HR".
-    iModIntro. iApply (physical_step_wand_later with "(H [//])").
-    iIntros "!> ($&$&H&$&$)". iMod "HR". iModIntro.
-    iApply (wpc0_strong_mono s s mj _ with "H"); auto.
-    { destruct (to_val e2); set_solver. }
-    iSplit.
-    * iIntros (?) "H". iDestruct "HR" as "(HR&_)".
-      iApply (ncfupd_mask_mono); last by by iMod ("H" with "[$]"). auto.
-      { destruct (to_val e2); set_solver. }
-    * iDestruct "HR" as "(_&HR)". iIntros "H".
-      iMod (cfupd_weaken_mask with "HR").
-      { destruct (to_val e2); set_solver. }
-      iModIntro. by iApply "H".
+    + iIntros (?) "H !> HP". by iMod ("H" with "HP").
+    + iIntros "H !> HP'". iApply (cfupd_weaken_mask _ E2); try done.
+      iMod "HP'". by iDestruct ("H" with "HP'") as "$".
 Qed.
+
 
 (* written to match the premise of wpc_bind *)
 (*
@@ -1169,7 +1152,7 @@ Lemma wpc_lift_step_physical s E Φ Φc e1 :
   to_val e1 = None →
   ((∀ σ1 g1 mj D κ κs nt, state_interp σ1 nt -∗ global_state_interp g1 mj D (κ ++ κs) -∗
    ((|={E,∅}=> ⌜if s is NotStuck then reducible e1 σ1 g1 else True⌝) ∧
-    ∀ e2 σ2 g2 efs, ⌜prim_step e1 σ1 g1 κ e2 σ2 g2 efs⌝ -∗ |={E|∅}⧗=>
+    ∀ e2 σ2 g2 efs, ⌜prim_step e1 σ1 g1 κ e2 σ2 g2 efs⌝ -∗ |={E|⊤∖D}⧗=>
       (state_interp σ2 (length efs + nt) ∗
        global_state_interp g2 mj D κs ∗
        WPC e2 @ s; E {{ Φ }} {{ Φc }} ∗
@@ -1183,7 +1166,6 @@ Proof.
   { iDestruct "H" as "(_&H)".
     iIntros. iMod ("H" with "[$]").
     by iFrame.
-    (* iApply step_fupd2N_inner_later; eauto. iModIntro; iFrame. *)
   }
   iDestruct "H" as "(H&_)". iIntros (q σ1 g1 D κ κs nt) "Hσ Hg HNC".
   iSplit.
@@ -1191,9 +1173,7 @@ Proof.
     iMod (fupd2_mask_subseteq ∅ ∅) as "_"; [set_solver..|done].
   }
   iIntros.
-  iApply (physical_step_subseteq E ∅); [set_solver..|].
-  iDestruct ("H" with "Hσ Hg [//]") as "H".
-  iApply (physical_step_wand with "H").
+  iApply (physical_step_wand with "(H Hσ Hg [//])").
   iIntros "($&$&Hwpc&Hlist)". iFrame.
   iSplitL "Hwpc".
   - iApply wpc0_wpc. iApply (wpc_strong_mono with "[$]"); eauto.
@@ -1214,29 +1194,15 @@ Lemma wpc_lift_step_fupd s E Φ Φc e1 :
   ∧ |C={E}=> Φc)%I
  ⊢ WPC e1 @ s; E {{ Φ }} {{ Φc }}.
 Proof.
-  rewrite wpc_unfold /wpc_pre /cfupd=>->. iIntros "H".
-  iIntros (mj).
-  iSplit; last first.
-  { iDestruct "H" as "(_&H)".
-    iIntros. iMod ("H" with "[$]").
-    by iFrame.
-    (* iApply step_fupd2N_inner_later; eauto. iModIntro; iFrame. *)
-  }
-  iDestruct "H" as "(H&_)". iIntros (q σ1 g1 D κ κs nt) "Hσ Hg HNC".
-  iSplit.
-  { iDestruct ("H" with "[$] [$]") as "[>$ _]".
-    iMod (fupd2_mask_subseteq ∅ ∅) as "_"; [set_solver..|done].
-  }
+  iIntros (?) "Hwp".
+  iApply (wpc_lift_step_physical); first done.
+  iSplit; [iLeft in "Hwp"|by iRight in "Hwp"].
+  iIntros; iSpecialize ("Hwp" with "[$] [$]").
+  iSplit; [by iLeft in "Hwp"|iRight in "Hwp"].
   iIntros.
-  iApply (physical_step_atomic ∅ (⊤ ∖ D)).
-  iMod ("H" with "Hσ Hg [//]") as "H".
-  iModIntro. iApply physical_step_intro. iNext.
-  iMod "H" as "($&$&Hwpc&Hlist)". iModIntro. iFrame.
-  iSplitL "Hwpc".
-  - iApply wpc0_wpc. iApply (wpc_strong_mono with "[$]"); eauto.
-    destruct (to_val _); set_solver.
-  - iFrame. iApply (big_sepL_mono with "Hlist"). intros.
-      by iApply wpc0_wpc.
+  iApply (physical_step_atomic ∅ (⊤∖D)); try set_solver.
+  iMod ("Hwp" with "[//]") as "Hwp". iModIntro.
+  iApply (physical_step_intro). iModIntro. by iMod "Hwp".
 Qed.
 
 Lemma wpc_lift_step s E1 Φ Φc e1 :
@@ -1260,18 +1226,6 @@ Proof.
   - by iDestruct ("H" with "[$] [$]") as "[_ ?]".
 Qed.
 
-(* Lemma global_state_interp_le ns ns' g mj D κs E:
-  ns ≤ ns' →
-  global_state_interp g mj D κs ={E}=∗ global_state_interp g ns' mj D κs.
-Proof.
-  iIntros (Hle) "Hg".
-  iInduction Hle as [|ns'] "IH".
-  { eauto. }
-  iMod ("IH" with "[$]") as "Hg".
-  iMod (fupd_mask_subseteq ∅) as "H"; first set_solver+.
-  iMod (global_state_interp_mono with "Hg"). iMod "H". eauto.
-Qed. *)
-
 Lemma wpc_lift_pure_step_no_fork `{!Inhabited (state Λ)} `{!Inhabited (global_state Λ)} s E1 E1' Φ Φc e1 :
   (∀ σ1 g1, if s is NotStuck then reducible e1 σ1 g1 else to_val e1 = None) →
   (∀ κ σ1 g1 e2 σ2 g2 efs, prim_step e1 σ1 g1 κ e2 σ2 g2 efs → κ = [] ∧ σ2 = σ1 ∧ g2 = g1 ∧ efs = []) →
@@ -1281,8 +1235,7 @@ Lemma wpc_lift_pure_step_no_fork `{!Inhabited (state Λ)} `{!Inhabited (global_s
 Proof.
   iIntros (Hsafe Hstep) "H". iApply wpc_lift_step.
   { specialize (Hsafe inhabitant inhabitant). destruct s; eauto using reducible_not_val. }
-  iSplit; last by (iDestruct "H" as "(_&$)").
-  iDestruct "H" as "(H&_)".
+  iSplit; [iLeft in "H"|by iRight in "H"].
   iIntros (σ1 g1 mj D κ κs n) "Hσ Hg". iMod "H".
   iSplit.
   { iMod (fupd_mask_subseteq ∅) as "Hclose"; [set_solver|].
@@ -1306,8 +1259,7 @@ Lemma wpc_lift_pure_det_step_no_fork `{!Inhabited (state Λ)} `{!Inhabited (glob
 Proof.
   iIntros (? Hpuredet) "H". iApply (wpc_lift_pure_step_no_fork s E1 E1'); try done.
   { naive_solver. }
-  iSplit; last by (iDestruct "H" as "(_&$)").
-  iDestruct "H" as "(H&_)".
+  iSplit; [iLeft in "H"|by iRight in "H"].
   iMod "H". iModIntro. iNext. iMod "H". iModIntro.
   iIntros (κ e' efs' σ g). iIntros ((_&?&?&->&?)%Hpuredet); auto.
 Qed.
@@ -1692,43 +1644,6 @@ Proof.
     iDestruct "H" as "[_ H]".
     iApply ("H" with "[$] [$]").
   }
-Qed.
-
-Lemma wpc_use_step_strong s E1 E2 e Φ Φc Q Q' :
-  TCEq (to_val e) None → E2 ⊆ E1 →
-  (∀ P D, (|={E2|D}⧗=> P) -∗ (|={E1|D}⧗=> P ∗ Q)) ∧ Q' -∗
-  WPC e @ s; E2 {{  v, Q ={E1}=∗ Φ v }} {{ (Q ∨ Q') ={E1}=∗ Φc }} -∗
-  WPC e @ s; E1 {{ Φ }} {{ Φc }}.
-Proof.
-  rewrite !wpc_unfold /wpc_pre /=. iIntros (-> Hle) "Hlb Hwp".
-  iIntros (mj). iSpecialize ("Hwp" $! mj).
-  iSplit; last first.
-  { iIntros.
-    iDestruct ("Hwp" with "[$] [$]") as "H".
-    iMod (fupd2_mask_subseteq E2 _) as "Hclo"; [done..|].
-    iMod "H" as "[$ HQ]". iMod "Hclo".
-    iDestruct "Hlb" as "[_ HQ']".
-    by iMod ("HQ" with "[$HQ']") as "$".
-  }
-  iDestruct "Hlb" as "[Hlb _]".
-  iDestruct "Hwp" as "[Hwp _]".
-  iIntros.
-  iSplit.
-  { iMod fupd_mask_subseteq; [done|].
-    iDestruct ("Hwp" with "[$] [$] [$]") as "[$ _]". }
-  iIntros.
-  iDestruct ("Hwp" with "[$] [$] [$] [//]") as "Hwp".
-  iApply (physical_step_wand with "[Hlb Hwp]").
-  - iApply "Hlb". iExact "Hwp".
-  - iIntros "(($ & $ & Hwp & $) & HQ)".
-    iApply (wpc0_strong_mono with "[$]"); [done|by destruct (to_val e2)|].
-    iSplit.
-    + iIntros (v) "HQ'".
-      iMod (ncfupd_mask_subseteq E1) as "Hclo"; first (destruct (to_val e2); set_solver).
-      by iMod ("HQ'" with "HQ") as "$".
-    + iIntros "HQ'".
-      iApply (cfupd_weaken_mask _ E1); first (destruct (to_val e2); set_solver).
-      by iMod ("HQ'" with "[$HQ]") as "$".
 Qed.
 
 End wpc.

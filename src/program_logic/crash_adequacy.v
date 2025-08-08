@@ -76,32 +76,6 @@ Proof.
       with (length efs + (length t1' + S (length t2'))) by lia. by iFrame.
 Qed.
 
-(* (* The total number of laters used between the physical steps number
-   [start] (included) to [start+ns] (excluded). *)
-Local Fixpoint steps_sum (num_laters_per_step step_count_next : nat → nat) (start : nat) : nat :=
-  match with
-  | O => 0
-  | S =>
-    S $ num_laters_per_step start +
-    steps_sum num_laters_per_step step_count_next (step_count_next start) ns
-  end.
-
-Lemma steps_sum_S (num_laters_per_step step_count_next : nat → nat) (start : nat) :
-  steps_sum num_laters_per_step step_count_next start (S ns) =
-  steps_sum num_laters_per_step step_count_next (step_count_next start) + S (num_laters_per_step start).
-Proof. induction => //=; try lia. Qed.
-
-Lemma steps_sum_S_r (num_laters_per_step step_count_next : nat → nat) (start : nat) :
-  steps_sum num_laters_per_step step_count_next start (S ns) =
-  steps_sum num_laters_per_step step_count_next start + S (num_laters_per_step (Nat.iter step_count_next start)).
-Proof.
-  revert start.
-  induction => start.
-  - rewrite //=; lia.
-  - rewrite steps_sum_S IHns. simpl.
-    rewrite -Nat.iter_succ_r /=. lia.
-Qed. *)
-
 Lemma wptp_steps s n e1 t1 κs κs' t2 σ1 g1 D σ2 g2 Φ Φc :
   nsteps n (e1 :: t1, (σ1,g1)) κs (t2, (σ2,g2)) →
   state_interp σ1 (length t1) -∗
@@ -187,11 +161,10 @@ Local Lemma wptp0_progress Φ Φc κs' n e1 t1 κs t2 σ1 g1 D σ2 g2 e2 :
    ⌜ not_stuck e2 σ2 g2 ⌝.
 Proof.
   iIntros (Hstep Hel) "Hσ Hg He Ht HNC".
-  rewrite steps_sum_S_r.
-  iMod (wptp_steps with "Hσ Hg He Ht HNC") as "Hwp"; first done.
-  iModIntro. iApply (physical_stepN_wand with "Hwp").
-  iMod 1 as (e2' t2' ?) "(Hσ & Hg & Hwp & Ht & HNC)"; simplify_eq/=.
-  apply elem_of_cons in Hel as [<-|(t1''&t2''&->)%elem_of_list_split].
+  iDestruct (wptp_steps with "Hσ Hg He Ht HNC") as "Hwp"; first done.
+  iApply (physical_stepN_wand with "Hwp").
+  iDestruct 1 as (e2' t2' ?) "(Hσ & Hg & Hwp & Ht & HNC)"; simplify_eq/=.
+  apply elem_of_cons in Hel as [<-|(t1''&t2''&->)%list_elem_of_split].
   - iPoseProof (wpc_safe with "Hσ Hg Hwp HNC") as "H".
     iMod "H". eauto.
   - iDestruct "Ht" as "(_ & He' & _)".

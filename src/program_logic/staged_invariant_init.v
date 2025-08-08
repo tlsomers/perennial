@@ -142,7 +142,7 @@ Lemma staged_inv_cancel_wpc_crash_modality'  E1 mj' Pc Qc :
 Proof using later_tokG0.
   iIntros "Hsc Hwpc".
   iDestruct "Hsc" as (mj0 Einv mj_ishare mj_ikeep γ γ' γstatus) "Hsc".
-  iDestruct "Hsc" as (Hlt Hinf Hinvalid Heq_mj) "([Htok2 [Htoklc1 Htoklc2]]&H&Hitok_ikeep&#Hpri_inv)".
+  iDestruct "Hsc" as (Hlt Hinf Hinvalid Heq_mj) "(Htok2&H&Hitok_ikeep&#Hpri_inv)".
   iAssert (∃ E', ⌜ E' ⊆ E1 ⌝ ∧ pri_inv Einv (staged_inv_inner E' Einv mj0 mj_ishare γ γ' γstatus Pc))%I as "Hpri_inv'".
   { iExists E1. iSplit; eauto. }
   iClear "Hpri_inv". iDestruct "Hpri_inv'" as (E' Hsub') "#Hpri_inv".
@@ -156,20 +156,21 @@ Proof using later_tokG0.
   { set_solver. }
   iEval (rewrite staged_inv_inner_unfold) in "Hinner".
   iDestruct "Hinner" as (γprop_stored ? stat ??) "(Hown1&#Hsaved1&#Hsaved2&Hstat&>Hitok_ishare&Hinner)".
+  iDestruct (later_tokN_use with "[$]") as "[Hlc Hcl]".
   iDestruct "Hinner" as "[Hs|Hfired]"; last first.
   {
     iDestruct "Hfired" as "(HPr&_&[HPc|>Hbad])"; last first.
     { (* This case is impossible since we have the staged_pending token *)
       iDestruct (pending_done with "[$] [$]") as %[]. }
     iMod (pending_upd_done with "H") as "H".
-    iMod ("Hclo" with "[-Hg HPc Hwpc Htok2 Htoklc1 Htoklc2]").
+    iMod ("Hclo" with "[-Hg HPc Hwpc Hlc]").
     { iNext. iEval (rewrite staged_inv_inner_unfold). iExists _, _, _, _, _. iFrame "∗ #". iRight. iFrame. }
     rewrite /wpc_crash_modality.
     iMod ("Hwpc" with "[$] [$]") as "(Hg&HQc)".
     iFrame.
-    iApply (lc_fupd2_add_later with "[$]"). by iNext.
+    iApply (lc_fupd2_add_laterN with "[$]"). by iNext.
   }
-  iApply (lc_fupd2_add_later with "[$]"). iNext.
+  iApply (lc_fupd2_add_laterN with "[$]"). iNext.
   destruct stat as [q1 q2|q|].
   {
     iDestruct "Hs" as (Hle') "(HPs&Hitok&#Hwand')".
@@ -207,12 +208,12 @@ Proof using later_tokG0.
     iDestruct "Hs" as "[Hs|Hbad]"; last first.
     { iDestruct (pending_done with "[$] [$]") as %[]. }
     iDestruct "Hs" as (? E1' Einv' mj_ishare' mj_ikeep' γs' γfinish' γstatus') "Hs".
-    iDestruct "Hs" as (????) "([Hltok [Htoklc2 Htoklc3]]&H'&Hitok'&#Hinv')".
+    iDestruct "Hs" as (????) "(Hltok&H'&Hitok'&#Hinv')".
     iMod (pending_upd_done with "H") as "Hdone".
     iMod ("Hclo" with "[Hown1 Hstat Hitok_ishare Hdone]").
     { iNext. iEval (rewrite staged_inv_inner_unfold).
       iExists _, _, _, _, _. iFrame "∗ #". iLeft. iRight. iFrame. }
-    iSpecialize ("IH" $! E1' _ q _ mj_ishare' with "[] [] [] [] [] [$] [$] [$] [$] [$] [$] [$] [$] [$]"); eauto.
+    iSpecialize ("IH" $! E1' _ q _ mj_ishare' with "[] [] [] [] [] [$] [$] [$] [$] [$] [$] [$]"); eauto.
     { iPureIntro; etransitivity; try eassumption. }
     { iPureIntro. split.
       - naive_solver.
@@ -252,7 +253,7 @@ Lemma wpc0_staged_inv_cancel s mj' mj E1 E2 e Φ Φc Pc:
 Proof using later_tokG0.
   iIntros (Hsub Hle_mj) "Hsc Hwp".
   iDestruct "Hsc" as (mj0 Einv mj_ishare mj_ikeep γ γ' γstatus) "Hsc".
-  iDestruct "Hsc" as (Hlt Hinf Hinvalid Heq_mj) "([Htok2 [Htoklc1 Htoklc2]]&H&Hitok_ikeep&#Hpri_inv)".
+  iDestruct "Hsc" as (Hlt Hinf Hinvalid Heq_mj) "(Htok&H&Hitok_ikeep&#Hpri_inv)".
   iLöb as "IH" forall (e E2 Hsub).
   rewrite ?wpc0_unfold. rewrite /wpc_pre.
   iSplit; last first.
@@ -272,18 +273,19 @@ Proof using later_tokG0.
     { set_solver. }
     iEval (rewrite staged_inv_inner_unfold) in "Hinner".
     iDestruct "Hinner" as (γprop_stored ? stat ??) "(Hown1&#Hsaved1&#Hsaved2&Hstat&>Hitok_ishare&Hinner)".
+    iDestruct (later_tokN_use with "[$]") as "[Hlc Hcl]".
     iDestruct "Hinner" as "[Hs|Hfired]"; last first.
     {
       iDestruct "Hfired" as "(HPr&_&[HPc|>Hbad])"; last first.
       { (* This case is impossible since we have the staged_pending token *)
         iDestruct (pending_done with "[$] [$]") as %[]. }
       iMod (pending_upd_done with "H") as "H".
-      iMod ("Hclo" with "[-Hg HPc Hwp Htoklc1]").
+      iMod ("Hclo" with "[-Hg HPc Hwp Hlc]").
       { iNext. iEval (rewrite staged_inv_inner_unfold). iExists _, _, _, _, _. iFrame "∗ #". iRight. iFrame. }
       iMod ("Hwp" with "[$] [$]") as "(Hg&$)". iFrame.
-      iApply (lc_fupd2_add_later with "[$]"); auto.
+      iApply (lc_fupd2_add_laterN with "[$]"); iNext; auto.
     }
-    iApply (lc_fupd2_add_later with "[$]"). iNext.
+    iApply (lc_fupd2_add_laterN with "[$]"). iNext.
     destruct stat as [q1 q2|q|].
     {
       iDestruct "Hs" as (Hle') "(HPs&Hitok&#Hwand')".
@@ -320,12 +322,12 @@ Proof using later_tokG0.
       iDestruct "Hs" as "[Hs|Hbad]"; last first.
       { iDestruct (pending_done with "[$] [$]") as %[]. }
       iDestruct "Hs" as (? E1' Einv' mj_ishare' mj_ikeep' γs' γfinish' γstatus') "Hs".
-      iDestruct "Hs" as (????) "([Hltok [Htoklc2 Htoklc3]]&H'&Hitok'&#Hinv')".
+      iDestruct "Hs" as (????) "(Hltok&H'&Hitok'&#Hinv')".
       iMod (pending_upd_done with "H") as "Hdone".
       iMod ("Hclo" with "[Hown1 Hstat Hitok_ishare Hdone]").
       { iNext. iEval (rewrite staged_inv_inner_unfold).
         iExists _, _, _, _, _. iFrame "∗ #". iLeft. iRight. iFrame. }
-      iSpecialize ("IH" $! E1' _ q _ mj_ishare' with "[] [] [] [] [] [] [$] [$] [$] [$] [$] Hwp [] [$] [$]"); eauto.
+      iSpecialize ("IH" $! E1' _ q _ mj_ishare' with "[] [] [] [] [] [] [$] [$] [$] [$] [$] [$] [$]"); eauto.
       { iPureIntro; etransitivity; try eassumption. }
       { iPureIntro.
         split.
@@ -346,7 +348,7 @@ Proof using later_tokG0.
   iDestruct "Hwp" as "(Hwp&_)".
   destruct (to_val e).
   { iIntros. iMod ("Hwp" with "[$] [$]") as "(Hv&$&$)".
-    iModIntro. iApply "Hv". iCombine "Htoklc1 Htoklc2" as "?".
+    iModIntro. iApply "Hv".
     iExists _, _, _, _, _, _, _. iFrame "∗ #". eauto.
   }
   iIntros.
@@ -355,7 +357,7 @@ Proof using later_tokG0.
   iIntros.
   iApply (physical_step_wand_later with "(Hwp [//])").
   iIntros "!> ($&$&Hwpc&$&$)".
-  iApply ("IH" with "[] [$] [$] [$] [$] [$] [$]").
+  iApply ("IH" with "[] [$] [$] [$] [$]").
   { iPureIntro. destruct (to_val); set_solver. }
 Qed.
 

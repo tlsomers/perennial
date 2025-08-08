@@ -588,3 +588,80 @@ Section soundness.
     iIntros "[_ >>$] //".
   Qed.
 End soundness.
+
+Section logical_step.
+
+  Context `{!trGS Σ} `{!invGS Σ} `{!tr_generation}.
+
+  (* A minimal reimplementation of logical step for Perennial's fupd2.
+     Limited to the non-mask changing version for simplicity.
+  *)
+
+  Definition logical_step_def E D P : iProp Σ :=
+    ∀ Q, (|={E|D}⧗=> Q) -∗ (|={E|D}⧗=> Q ∗ P).
+  Local Definition logical_step_aux : seal ( @logical_step_def). Proof. by eexists. Qed.
+  Definition logical_step := logical_step_aux.(unseal).
+  Local Definition logical_step_unseal :
+    @logical_step = @logical_step_def := logical_step_aux.(seal_eq).
+
+  Local Ltac unseal := rewrite
+    ?logical_step_unseal /logical_step_def.
+  Local Ltac seal := fold logical_step_def; rewrite <-?logical_step_unseal.
+  Notation "|~{ E | D }~> P" := (logical_step E D P) (at level 99, P at level 200, format "'[  ' |~{ E | D }~>  '/' P ']'").
+
+  Lemma step_update_mask_weaken E D E' D' P :
+    E ⊆ E' → D ⊆ D' →
+    (|~{E|D}~> P) -∗
+    (|~{E'|D'}~> P).
+  Proof.
+    unseal. iIntros (Hle Hdiff) "Hupd %Q HQ".
+    iDestruct (physical_step_atomic_inv_subseteq E D with "HQ") as "HQ"; [set_solver..|].
+    iApply (physical_step_atomic E D).
+    iMod "HQ". iModIntro. iDestruct ("Hupd" with "HQ") as "HQ".
+    iApply (physical_step_wand with "[$]").
+    iIntros "[H $] //".
+  Qed.
+
+  (* TODO: Port back these into_wand instances. *)
+  Global Instance elim_modal_logical_step E D E' D' P Q :
+    ElimModal (E ⊆ E' ∧ D ⊆ D') false false (|~{E|D}~> P) emp (|={E'|D'}⧗=> Q) (|={E'|D'}⧗=> P -∗ Q).
+  Proof.
+    rewrite /ElimModal /=.
+    iIntros ([??]) "[HP HPQ]".
+    iDestruct (step_update_mask_weaken _ _ E' D' with "HP") as "HP"; [done..|].
+    unseal. iApply (physical_step_wand with "(HP (HPQ [//]))").
+    iIntros "[HPQ HP]". by iApply "HPQ".
+  Qed.
+
+  Global Instance elim_modal_logical_step' E D E' D' P Q :
+    ElimModal (E ⊆ E' ∧ D ⊆ D') false false (|~{E|D}~> P) emp (|~{E'|D'}~> Q) (|~{E'|D'}~> P -∗ Q).
+  Proof.
+    rewrite /ElimModal /=.
+    iIntros ([??]) "[HP HPQ]". iEval unseal. iIntros "%R HR".
+    iMod ("HPQ" with "[//]") as "_". iMod "HP"  as "_".
+    iApply (physical_step_wand with "HR").
+    iIntros "$ HP HPQ". by iApply "HPQ".
+  Qed.
+
+  Lemma logical_step_wand E D P Q :
+    (|~{E|D}~> P) -∗  
+    (P -∗ Q) -∗
+    |~{E|D}~> Q.
+  Proof.
+    iIntros "Hstep HPQ". iEval (unseal). iIntros (R) "HR".
+    iMod "Hstep" as "_".
+    iApply (physical_step_wand with "HR"). iIntros "$ P".
+    by iApply "HPQ".
+  Qed.
+
+  Lemma logical_step_intro E D P :
+    P -∗
+    |~{E|D}~> P.
+  Proof. unseal.
+    iIntros "HP" (R) "HR".
+    iApply (physical_step_wand with "HR"). by iIntros "$".
+  Qed.
+
+End logical_step.
+
+Global Notation "|~{ E | D }~> P" := (logical_step E D P) (at level 99, P at level 200, format "'[  ' |~{ E | D }~>  '/' P ']'").

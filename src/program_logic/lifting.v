@@ -143,9 +143,6 @@ Proof.
   iSplit.
   { iMod (fupd_mask_subseteq ∅) as "Hclo"; [set_solver+|]. iPureIntro. destruct s; done. }
   iIntros.
-  (* iApply physical_step_step. iSplit.
-  { iMod (tr_persistent_zero) as "$". iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver+..|done]. }
-  iIntros "Hlc Htr". *)
   destruct (Hstep κ σ1 g1 e2 σ2 g2 efs) as (-> & <- & <- & ->); auto.
   iApply (physical_step_wand with "(H [//])").
   iIntros "H /=". iFrame.

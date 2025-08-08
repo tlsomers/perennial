@@ -134,7 +134,7 @@ Section proof.
   Global Instance wlocked_timeless l : Timeless (wlocked l).
   Proof. apply _. Qed.
 
-  Definition is_free_lock (l: loc): iProp Σ := heap_pointsto l (DfracOwn 1) #1 ∗ later_tok ∗ later_tok ∗ later_tok ∗ later_tok.
+  Definition is_free_lock (l: loc): iProp Σ := heap_pointsto l (DfracOwn 1) #1 ∗ later_tokN 4.
 
   Theorem is_free_lock_ty lk :
     is_free_lock lk -∗ ⌜val_ty #lk ptrT⌝.

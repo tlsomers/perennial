@@ -27,7 +27,8 @@ Proof using later_tokG0.
   iIntros "Hstaged Hwand".
   rewrite /wp_nval.
   iIntros (mj q g1 D κs) "Hg HNC".
-  iDestruct "Hstaged" as (E2 ?????) "(Hown&Hownstat&#Hsaved1&#Hsaved2&[Hltok Htoklc]&Hitok&Hinv)".
+  iDestruct "Hstaged" as (E2 ?????) "(Hown&Hownstat&#Hsaved1&#Hsaved2&Hltok&Hitok&Hinv)".
+  iDestruct (later_tokN_use with "[$]") as "[Htoklc Hcl]".
   iDestruct "Hinv" as (mj_wp_init mj_ishare Hlt) "#Hinv".
   rewrite /staged_inv.
   iDestruct (pri_inv_tok_disj_inv_half with "[$]") as %Hdisj.
@@ -43,7 +44,7 @@ Proof using later_tokG0.
   inversion Heq; subst.
   iDestruct (saved_prop_agree with "Hsaved1 Hsaved1'") as "Hequiv1".
   iDestruct (saved_prop_agree with "Hsaved2 Hsaved2'") as "Hequiv2".
-  iApply (lc_fupd2_add_laterN with "[$]"). do 2 iNext.
+  iApply (lc_fupd2_add_laterN with "[$]"). iNext.
   iDestruct "Hinner" as "[(HPs&_)|Hfin]"; last first.
   { (* Impossible, since we have NC token. *)
     iDestruct "Hfin" as "(_&HC&_)". iDestruct (NC_C with "[$] [$]") as %[]. }
@@ -85,10 +86,9 @@ Proof using later_tokG0.
       etransitivity; first eapply B.
       done.
   }
-  
-  iApply (logical_step_emp_use_tr_simpl with "[$]").
-  iApply (logical_step_emp_wand with "[$]").
-  iIntros "Hwand H⧗ H£" (??) "Hg HNC". iMod ("Hwand" with "Hg HNC") as "(Hg&(#Hshift&HQs'&HR)&HNC)".
+  iMod "Hcl" as "_". iMod "Hstep" as "_". iApply (logical_step_intro).
+  simpl. iIntros "Hwand [Htok _]" (??) "Hg HNC".
+  iMod ("Hwand" with "Hg HNC") as "(Hg&(#Hshift&HQs'&HR)&HNC)".
   iMod (saved_prop_alloc Qs') as (γprop_stored') "#Hsaved1''".
   { apply dfrac_valid_discarded. }
   iMod (saved_prop_alloc True%I) as (γprop_remainder') "#Hsaved2''".
@@ -111,11 +111,7 @@ Proof using later_tokG0.
     iIntros. iDestruct ("Hshift" with "[$]") as "$"; eauto.
   }
   iDestruct ("Hg_inv_clo" with "Hg") as "Hg".
-  iFrame "#∗".
-  iModIntro; iSplitL; try done.
-  assert (2 ≤ f 2) by (pose proof (f_exp 2); lia).
-  iDestruct (lc_weaken with "H£") as "$"; first done.
-  by iApply (tr_weaken with "H⧗").
+  by iFrame "#∗".
 Qed.
 
 End def.

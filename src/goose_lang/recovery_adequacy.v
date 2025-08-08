@@ -23,9 +23,10 @@ Theorem goose_recv_adequacy `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} {Hffi_a
   recv_adequate (CS := goose_crash_lang) s e r σ g (λ v _ _, φ v) (λ v _ _, φr v) (λ σ _, φinv σ).
 Proof.
   intros Hinit Hinitg Hwp.
-  eapply (wp_recv_adequacy_inv Σ _ _ _ _ _ _ _ _ _ _ (_ + n*8)).
-  iIntros (????) "[[H⧗ H⧗'] [H£ H£']]".
-
+  eapply (wp_recv_adequacy_inv Σ _ _ _ _ _ _ _ _ _ _ _).
+  iIntros (????) "H⧗£".
+  iAssert (later_tokN (_ + _)) with "[H⧗£]" as "[Htoks1 Htoks2]".
+  { rewrite later_res.later_tokN_unseal /later_tokN_def. iFrame. }
 
   iMod (na_heap_name_init tls σ.(heap)) as (name_na_heap) "Hh".
   iMod (ffi_global_init _ _ g.(global_world)) as (ffi_namesg) "(Hgw&Hgstart)"; first by eauto.
@@ -36,8 +37,8 @@ Proof.
   iDestruct (cred_frag_split with "Hcred") as "(Hpre&Hcred)".
   iMod (proph_map_init κs g.(used_proph_id)) as (proph_names) "Hproph".
 
-  iAssert (|={⊤}=> crash_borrow_ginv)%I with "[H⧗ H£]" as ">#Hinv".
-  { rewrite /crash_borrow_ginv. iApply (inv_alloc _). iNext. iFrame. }
+  iAssert (|={⊤}=> crash_borrow_ginv)%I with "[Htoks1]" as ">#Hinv".
+  { rewrite /crash_borrow_ginv. by iApply (inv_alloc _). }
   (* TODO(RJ): reformulate init lemmas to better match what we need here. *)
   set (hG := GooseGlobalGS _ _ _ proph_names (creditGS_update_pre _ _ name_credit) ffi_namesg).
   set (hL := GooseLocalGS Σ Hc ffi_names (na_heapGS_update_pre _ name_na_heap) (traceGS_update_pre Σ _ name_trace)
@@ -45,7 +46,6 @@ Proof.
   destruct (Hwp (HeapGS _ hG hL)) as [Φinv Hwp']. clear Hwp.
   iExists state_interp, global_state_interp, fork_post.
   iExists ((λ Hinv hGen, ∃ hL:gooseLocalGS Σ, ⌜hGen = goose_generationGS (L:=hL)⌝ ∗ Φinv (HeapGS _ _ hL)))%I.
-  iDestruct (pre_borrowN_create with "[$] [$]") as "H".
 
   iMod (Hwp' with "[$] [$] [$] [$] [$] [$]") as "(#H1&#H2&Hwp)".
   iModIntro.
