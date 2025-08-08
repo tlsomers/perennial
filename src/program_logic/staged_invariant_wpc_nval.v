@@ -28,7 +28,8 @@ Proof using later_tokG0.
   iIntros "Hstaged Hwand".
   rewrite /wpc_nval.
   iIntros (E' e s Φ Φc Hnval Hsub) "Hwp".
-  iDestruct "Hstaged" as (??????) "(Hown&Hownstat&#Hsaved1&#Hsaved2&[Hltok [Htoklc1 Htoklc2]]&Hitok&Hinv)".
+  iDestruct "Hstaged" as (??????) "(Hown&Hownstat&#Hsaved1&#Hsaved2&Htok&Hitok&Hinv)".
+  iDestruct (later_tokN_use with "[$]") as "[[[??]_] Hcl]".
   iDestruct "Hinv" as (mj_wp_init mj_ishare Hlt) "#Hinv".
   rewrite /staged_inv.
   rewrite wpc_eq /wpc_def. iIntros (mj).
@@ -91,16 +92,11 @@ Proof using later_tokG0.
   iMod (fupd2_mask_subseteq E' (⊤ ∖ D ∖ E2)) as "Hclo"; [set_solver..|].
   iModIntro.
   iSplit; iMod "Hclo"; [by iLeft in "H"|iRight in "H"].
-  iIntros.
-  iApply (physical_step_tr_use with "[$]").
+  iIntros. iMod "Hcl" as "_".
   iApply (physical_step_wand with "(H [//])").
-  iIntros "($&Hg&Hwpc0&$) H⧗ H£".
-  assert (2 ≤ f 2).
-  { pose proof (f_exp 2); lia. }
-  iDestruct (tr_weaken 2 with "H⧗") as "H⧗"; first done.
-  iDestruct (lc_weaken 2 with "H£") as "H£"; first done.
+  iIntros "($&Hg&Hwpc0&$) [[Htok _] _]".
   iApply (fupd2_mask_intro_subseteq); [set_solver..|].
-  iModIntro. iFrame.
+  iFrame.
   iApply (wpc0_strong_mono with "Hwpc0"); auto.
   iSplit.
   { iIntros (?) "H". iDestruct ("H" with "[-]") as "H".

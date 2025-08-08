@@ -17,8 +17,8 @@ Context `{!stagedG Σ}.
 
 Global Instance later_tokG_heap : later_tokG (goose_irisGS).
 Proof.
-  split. intros. admit.
-Admitted.
+  split. intros. rewrite /f /=. lia.
+Qed.
 
 Lemma ownfCP_inf_le1 γ (q : Qp) (E : coPset) :
   ownfCP_inf γ q E -∗ ⌜ q ≤ 1 ⌝%Qp.
@@ -99,136 +99,32 @@ Proof.
     iApply (ownfCP_disj with "[$]").
 Qed.
 
-Definition pre_borrow : iProp Σ :=
-  (later_tok ∗ later_tok ∗ later_tok ∗ later_tok).
+Definition pre_borrowN n : iProp Σ :=
+  (later_tokN (n * 4)).
 
-Lemma pre_borrow_create :
-  ⧗ 8 -∗ £ 8 -∗ pre_borrow.
+Notation pre_borrow := (pre_borrowN 1).
+
+Lemma physical_step_use_pre_borrowN n E D :
+  pre_borrowN n -∗ |~{E|D}~> pre_borrowN n ∗ pre_borrowN n.
 Proof.
-  iIntros "??".
-  iDestruct (later_toks_equiv 4 with "[$]") as "($&$&$&$&?)".
-Qed.
-
-Lemma pre_borrow_destroy :
-  pre_borrow -∗ ⧗ 8 ∗ £ 8.
-Proof.
-  iIntros "([H1 H5]&[H2 H6]&[H3 H7]&[H4 H8])".
-  iCombine "H1 H2 H3 H4" as "$".
-  iCombine "H5 H6 H7 H8" as "$".
-Qed.
-
-Definition pre_borrowN (n: nat) := Nat.iter n (λ P, pre_borrow ∗ P)%I True%I.
-
-Lemma pre_borrowN_create n :
-  ⧗ (n*8) -∗ £ (n*8) -∗ pre_borrowN n.
-Proof.
-  induction n; [eauto|].
-  iDestruct 1 as "[H⧗ H⧗']".
-  iDestruct 1 as "[H£ H£']".
-  iSplitL "H⧗ H£".
-  - iApply (pre_borrow_create with "[$] [$]").
-  - iApply (IHn with "[$] [$]").
-Qed.
-
-Lemma pre_borrowN_destroy n :
-  pre_borrowN n ==∗ ⧗ (n*8) ∗ £ (n*8).
-Proof.
-  induction n.
-  { iIntros "_". iMod tr_zero as "$". iApply lc_zero. }
-  iIntros "[H1 Hrest]".
-  iDestruct (pre_borrow_destroy with "H1") as "[H⧗ H£]".
-  iMod (IHn with "Hrest") as "[H⧗' H£']".
-  iCombine ("H⧗ H⧗'") as "$".
-  by iCombine ("H£ H£'") as "$".
-Qed.
-
-Lemma physical_step_use_pre_borrow E D P :
-  pre_borrow -∗
-  (|={E|D}⧗=> pre_borrow ∗ pre_borrow -∗ P) -∗
-  |={E|D}⧗=> P.
-Proof.
-  iIntros "Hbor Hstep".
-  iDestruct (pre_borrow_destroy with "[$]") as "[H⧗ _]".
-  iApply (physical_step_tr_use with "[$]").
-  iApply (physical_step_wand with "[$]").
-  iIntros "HP H⧗ H£".
-  assert (8 + 8 ≤ f 8).
-  { pose proof (f_exp 8). lia. }
-  iDestruct (lc_weaken with "[$]") as "[??]"; first done.
-  iDestruct (tr_weaken with "[$]") as "[??]"; first done.
-  iApply "HP".
-  iDestruct (pre_borrow_create with "[$] [$]") as "$".
-  by iDestruct (pre_borrow_create with "[$] [$]") as "$".
-Qed.
-
-Lemma physical_step_use_pre_borrowN E D P n :
-  pre_borrowN n -∗
-  (|={E|D}⧗=> pre_borrowN n ∗ pre_borrowN n -∗ P) -∗
-  |={E|D}⧗=> P.
-Proof.
-  revert P; induction n; intro P; [rewrite /= !left_id; eauto|].
-  iIntros "[Hbor1 Hborn] HP".
-  iApply (physical_step_use_pre_borrow with "[$]").
-  iApply (IHn with "[$]").
-  iApply (physical_step_wand with "[$]").
-  iIntros "Hcl [H1 H2] [H3 H4]".
-  iApply "Hcl". iFrame.
+  iIntros "Hbor".
+  iDestruct (later_tokN_use with "[$]") as "[_ Hcl]".
+  iMod "Hcl" as "_".
+  iApply (logical_step_intro).
+  replace (n * 4 * 10) with (2 * (n * 4) + 8 * n * 4) by lia.
+  iIntros "[[Ha Hb] _]". rewrite Nat.add_0_r. iFrame.
 Qed.
 
 Global Instance pre_borrowN_timeless n :
   Timeless (pre_borrowN n).
 Proof. induction n; apply _. Qed.
 
-(* Lemma cred_frag_to_pre_borrowN n :
-  cred_frag (n * 4) -∗ pre_borrowN n.
-Proof.
-  induction n.
-  - rewrite //=. eauto.
-  - replace (S n * 4) with (4 + (n * 4)) by auto.
-    iIntros "H". iDestruct (cred_frag_split with "H") as "(H&IH)".
-    iDestruct (IHn with "IH") as "IH". simpl. iFrame.
-    replace 4 with (1 + 1 + 1 + 1) by auto.
-    repeat (iDestruct (cred_frag_split with "H") as "(H&?)").
-    iFrame.
-Qed. *)
-
 Lemma pre_borrowN_split n1 n2 :
   pre_borrowN (n1 + n2) -∗ pre_borrowN n1 ∗ pre_borrowN n2.
 Proof.
-  rewrite /pre_borrowN Nat.iter_add.
-  induction n1 => //=.
-  - iIntros "$".
-  - iIntros "($&H)". by iApply IHn1.
+  rewrite /pre_borrowN Nat.mul_add_distr_r. 
+  iIntros "[$ $]".
 Qed.
-
-(* Lemma pre_borrowN_to_cred_frag n :
-  pre_borrowN (S n) -∗ cred_frag ((S n) * 4).
-Proof.
-  induction n.
-  - rewrite //=.
-    replace 4 with (1 + 1 + 1 + 1) by auto.
-    iIntros "((?&?&?&?)&_)".
-    repeat (iApply cred_frag_join; iFrame).
-  - iIntros "H". iDestruct (pre_borrowN_split 1 with "H") as "(H&Hrest)".
-    iDestruct (IHn with "Hrest") as "IH".
-    replace (S (S n) * 4) with (4 + (S n * 4)) by lia.
-    iApply cred_frag_join; iFrame.
-    replace 4 with (1 + 1 + 1 + 1) by auto.
-    iDestruct "H" as "((?&?&?&?)&_)".
-    repeat (iApply cred_frag_join; iFrame).
-Qed. *)
-
-(* Lemma pre_borrowN_global_interp_le n1 g n2 mj E κs :
-  pre_borrowN n1 -∗ global_state_interp g n2 mj E κs -∗
-  ⌜ 4 * n1 <= n2 ⌝.
-Proof.
-  destruct n1; first by (iIntros; iPureIntro; lia).
-  iIntros "Hpre Hg".
-  iDestruct "Hg" as "(_&_&_&Hinterp&_)".
-  iDestruct (pre_borrowN_to_cred_frag with "Hpre") as "Hcred_frag".
-  iDestruct (cred_interp_invert with "[$]") as (?) "%Heq". subst.
-  iPureIntro; lia.
-Qed. *)
 
 Lemma pre_borrowN_big_sepM `{Countable K} {A} n (m : gmap K A) :
   size m = n →
@@ -257,9 +153,8 @@ Global Instance: Params ( @crash_borrow) 2 := {}.
 Lemma crash_borrow_init_cancel P Pc :
   pre_borrow -∗ P -∗ □ (P -∗ Pc) -∗ init_cancel (crash_borrow P Pc) Pc.
 Proof.
-  iIntros "H HP #Hwand".
-  iDestruct "H" as "(Hlt1&H)".
-  iDestruct "H" as "(Hlt2&Hlt3)".
+  iIntros "H HP #Hwand". rewrite /pre_borrowN /=.
+  iDestruct "H" as "(Hlt1&Hlt2&Hlt3&Hlt4)".
   iDestruct (staged_value_init_cancel P Pc with "[$]") as "H".
   iApply (init_cancel_wand with "H [-] []").
   { iIntros "H". rewrite crash_borrow_eq. iExists _, _. iFrame "# ∗". iSplitL; eauto. }
@@ -325,18 +220,11 @@ Proof.
   iIntros. iApply physical_step_fupd_l. iMod "H⧗". iModIntro.
   iDestruct ("Hwpc" with "[$] [$] [$]") as "[_ Hwpc]".
   iDestruct ("Hwpc" with "[//]") as "Hwpc".
-  iApply (physical_step_tr_use with "[$]").
+  iDestruct (later_tokN_use with "[$]") as "[_ >_]".
   iApply (physical_step_wand with "[$]").
-  iIntros "($&$&Hwpc&$&$) H⧗ H£".
-  assert (8 + crash_borrow_ginv_number ≤ f crash_borrow_ginv_number).
-  { pose proof (f_exp crash_borrow_ginv_number) as Hle.
-    rewrite /crash_borrow_ginv_number in Hle |- *.
-    lia.
-  }
-  iDestruct (lc_weaken (8 + crash_borrow_ginv_number) with "H£") as "[H£ H£']"; first done.
-  iDestruct (tr_weaken (8 + crash_borrow_ginv_number) with "H⧗") as "[H⧗ H⧗']"; first done.
-  iDestruct (later_toks_equiv 4 with "[$]") as "(?&?&?&?&_)".
-  iAssert (pre_borrow) with "[$]" as "Hpre". iModIntro.
+  replace (1*10) with (4 + (crash_borrow_ginv_number + 1)); last first.
+  { rewrite /crash_borrow_ginv_number //. }
+  iIntros "($&$&Hwpc&$&$) (Hpre&Hcrash&_)".
   iMod ("Hclo" with "[$]") as "_".
   iModIntro.
   iApply (wpc0_strong_mono with "Hwpc"); auto.
@@ -387,13 +275,7 @@ Proof.
   iRight in "Hwpc".
 
   iAssert (||={⊤ ∖ ↑borrowN|⊤ ∖ D, ⊤ ∖ ↑borrowN|⊤ ∖ D}=> (_ ∧ _))%I with "[-]" as ">$".
-  iMod "H" as "[H⧗ H£]".
-  assert (8 + (crash_borrow_ginv_number - 8) ≤ crash_borrow_ginv_number).
-  { unfold crash_borrow_ginv_number. lia. }
-  assert (crash_borrow_ginv_number ≤ f (crash_borrow_ginv_number - 8)).
-  { rewrite /crash_borrow_ginv_number /=. lia. }
-  iDestruct (tr_weaken (8 + _) with "[$]") as "[H⧗ H⧗']"; first done.
-  iDestruct (lc_weaken (8 + _) with "[$]") as "[H£ H£']"; first done.
+  iMod "H" as "(Htok1&Htok2&Htok3)".
 
   iMod (pri_inv_tok_alloc with "[$]") as (Einv Hdisj) "(Hitok&Hg)".
   iDestruct (pri_inv_tok_global_valid with "[$]") as %(Hgt&Hle).
@@ -422,15 +304,15 @@ Proof.
     iLeft. iSplit; first iFrame. iIntros "HC". iDestruct ("Hwand" with "[$]") as "$"; eauto.
   }
 
-  iDestruct (later_toks_equiv 4 with "[$]") as "(Hlt&Hlt1&Hlt2&Hlt3&?)".
-  iAssert (staged_inv_cancel ⊤ mj Pc)%I with "[Hitok_ikeep Hpending Hlt]" as "Hcancel".
+  iAssert (staged_inv_cancel ⊤ mj Pc)%I with "[Hitok_ikeep Hpending Htok1]" as "Hcancel".
   {
     iExists _, _, _, _, _, _, _. iFrame "∗%". eauto.
   }
 
-  iAssert (crash_borrow P Pc)%I with "[Hlt1 Hlt2 Hlt3 H2 Hstat2 Hitok_u]"  as "Hborrow".
+  iAssert (crash_borrow P Pc)%I with "[Htok3 H2 Hstat2 Hitok_u]"  as "Hborrow".
   {
     rewrite crash_borrow_eq.
+    iDestruct "Htok3" as "($&$&$&_)".
     iExists P, Pc. iFrame "# ∗". 
     iSplitR; first eauto.
     iSplitR; eauto.
@@ -442,29 +324,29 @@ Proof.
   iDestruct ("Hwpc" with "Hσ [$] [$]") as "Hwpc".
   iModIntro. iSplit; [by iLeft in "Hwpc"|iRight in "Hwpc"].
   iIntros (e2????Hstep).
-  iApply (physical_step_tr_use with "[$]").
+  iDestruct (later_tokN_use with "Htok2") as "[_ >_]".
   iApply (physical_step_wand with "(Hwpc [//])").
-  iIntros "(Hσ&Hg&Hwp&$) H⧗ H£ !>".
+  iIntros "(Hσ&Hg&Hwp&$) /= Htoks".
 
-  iDestruct (tr_weaken crash_borrow_ginv_number with "[$]") as "H⧗"; first done.
-  iDestruct (lc_weaken crash_borrow_ginv_number with "[$]") as "H£"; first done.
-  iMod ("Hclo" with "[$]") as "_".
+  iMod ("Hclo" with "[Htoks]") as "_".
+  { rewrite /crash_borrow_ginv_number. replace 10 with (5 + 5) by lia.
+    iDestruct "Htoks" as "[$ _]". }
   iModIntro. iFrame.
   iApply (wpc0_staged_inv_cancel with "[$]").
-  { destruct (language.to_val e2); eauto. }
+  { destruct (to_val e2); eauto. }
   { auto. }
   iApply (wpc0_strong_mono with "Hwp"); auto.
-  { destruct (language.to_val e2); eauto. }
+  { destruct (to_val e2); eauto. }
   iSplit; last first.
   { iIntros "H !>"; eauto. }
   iIntros (v) "Hwpc". iModIntro. iIntros "Hcancel".
 
   iApply (wpc0_staged_inv_cancel with "[$]").
-  { destruct (language.to_val (K _)); eauto. }
+  { destruct (to_val (K _)); eauto. }
   { auto. }
 
   iApply (wpc0_strong_mono with "Hwpc"); auto.
-  { destruct (language.to_val (K _)); auto. }
+  { destruct (to_val (K _)); auto. }
 Qed.
 
 Lemma wpc_crash_borrow_init_ctx' s e Φ Φc P Pc K `{!LanguageCtx K} :
@@ -1137,5 +1019,6 @@ Proof.
     iModIntro. iApply big_sepM_insert; auto; iFrame.
 Qed.
 
-
 End crash_borrow_def.
+
+Notation pre_borrow := (pre_borrowN 1).

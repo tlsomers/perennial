@@ -409,8 +409,9 @@ Lemma wpc_crash_modality_combine E1 mj P1 P2 :
   ▷ wpc_crash_modality E1 mj P1 -∗
   ▷ wpc_crash_modality E1 mj P2 -∗
   wpc_crash_modality E1 mj (P1 ∗ P2).
-Proof.
-  iIntros "[Htok [Htoklc1 _]] H1 H2".
+Proof using later_tokG0.
+  iIntros "Htok H1 H2".
+  iDestruct (later_tokN_use with "[$]") as "[[[Hlc _] _] _]".
   iApply (wpc_crash_modality_fupd).
   iApply (lc_fupd_add_later with "[$]").
   iNext. iModIntro. iApply (wpc_crash_modality_combine' with "H1 [$]").
@@ -433,7 +434,8 @@ Proof using stagedG0 later_tokG0.
       iDestruct (pri_inv_tok_global_valid with "[$]") as %(?&?).
       exfalso. naive_solver.
   }
-  iIntros (Hlt) "[_ [Hltok Hltok2]] H".
+  iIntros (Hlt) "Htok H".
+  iDestruct (later_tokN_use with "Htok") as "[[[Hltok Hltok2] _] Hcl]".
   iIntros "Hg".
   destruct (Qp_plus_split_alt mj1 mj2) as (qa&qb&Hle1&Hlt2&Hle3); auto.
   rewrite -Hle1.

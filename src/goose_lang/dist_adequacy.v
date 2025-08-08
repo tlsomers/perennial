@@ -32,7 +32,7 @@ Proof.
   iMod (Hwp hG with "[$]") as "(Hwp&Hφ)".
 
   iAssert (|={⊤}=> crash_borrow_ginv)%I with "[Hntr Hlc]" as ">Hinv".
-  { rewrite /crash_borrow_ginv. iApply (inv_alloc _). iNext. iFrame. }
+  { rewrite /crash_borrow_ginv. iApply (inv_alloc _). iNext. rewrite later_res.later_tokN_unseal. iFrame. }
   iModIntro.
   iFrame "Hgw Hinv Htok Hproph".
   iSplitR; first by eauto.

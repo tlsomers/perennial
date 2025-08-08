@@ -11,6 +11,64 @@ Class later_tokG {Λ Σ} (IRISG : irisGS Λ Σ) := {
   f_exp : ∀ n, 10*n ≤ f n;
 }.
 
+Section later_tok.
+
+Context `{IRISG: !invGS Σ, trGS Σ}.
+
+Definition later_tokN_def n : iProp Σ := ⧗ (n*2) ∗ £ (n*2).
+Local Definition later_tokN_aux : seal ( @later_tokN_def). Proof. by eexists. Qed.
+Definition later_tokN := later_tokN_aux.(unseal).
+Local Definition later_tokN_unseal :
+  @later_tokN = @later_tokN_def := later_tokN_aux.(seal_eq).
+
+Lemma later_tok_split n₁ n₂ :
+  later_tokN (n₁ + n₂) ⊣⊢ later_tokN n₁ ∗ later_tokN n₂.
+Proof.
+  rewrite later_tokN_unseal /later_tokN_def !Nat.mul_add_distr_r tr_split lc_split.
+  iSplit; iIntros "[[$$] [$$]]".
+Qed.
+
+Global Instance later_tokN_timeless n : Timeless (later_tokN n).
+Proof. rewrite later_tokN_unseal /later_tokN_def. apply _. Qed.
+
+Global Instance from_sep_later_tok_add n₁ n₂ :
+  FromSep (later_tokN (n₁ + n₂)) (later_tokN n₁) (later_tokN n₂) | 0.
+Proof.
+  by rewrite /FromSep later_tok_split.
+Qed.
+Global Instance from_sep_later_tok_S n :
+  FromSep (later_tokN (S n)) (later_tokN 1) (later_tokN n) | 1.
+Proof.
+  by rewrite /FromSep (later_tok_split 1 n).
+Qed.
+
+Global Instance combine_sep_later_tok_add n₁ n₂ :
+  CombineSepAs (later_tokN n₁) (later_tokN n₂) (later_tokN (n₁ + n₂)) | 1.
+Proof.
+  by rewrite /CombineSepAs later_tok_split.
+Qed.
+
+Global Instance combine_sep_later_tok_S_l n :
+  CombineSepAs (later_tokN n) (later_tokN 1) (later_tokN (S n)) | 0.
+Proof.
+  by rewrite /CombineSepAs comm (later_tok_split 1 n).
+Qed.
+
+Global Instance into_sep_later_tok_add n₁ n₂ :
+  IntoSep (later_tokN (n₁ + n₂)) (later_tokN n₁) (later_tokN n₂) | 0.
+Proof.
+  by rewrite /IntoSep later_tok_split.
+Qed.
+Global Instance into_sep_later_tok_S n :
+  IntoSep (later_tokN (S n)) (later_tokN 1) (later_tokN n) | 1.
+Proof.
+  by rewrite /IntoSep (later_tok_split 1 n).
+Qed.
+
+End later_tok.
+
+Notation later_tok := (later_tokN 1).
+
 Section res.
 
 Context `{IRISG: !irisGS Λ Σ, generationGS Λ Σ}.
@@ -22,18 +80,38 @@ Implicit Types Φc : iProp Σ.
 Implicit Types v : val Λ.
 Implicit Types e : expr Λ.
 
-Definition later_tok : iProp Σ := ⧗ 2 ∗ £ 2.
+Lemma later_tokN_use n :
+  later_tokN n -∗
+  £ (n*2) ∗ |~{∅|∅}~> later_tokN (n*10).
+Proof using LT.
+  rewrite later_tokN_unseal /later_tokN_def.
+  rewrite physical_step.logical_step_unseal.
+  iIntros "[H⧗ $]" (P) "Hstep".
+  iApply (physical_step_tr_use with "[$]").
+  iApply (physical_step_wand with "[$]").
+  iIntros "$ H⧗ H£".
+  assert (n * 10 * 2 ≤ f (n*2)) as Hle.
+  { etrans; [|apply f_exp]; lia. }
+  iDestruct (tr_weaken with "[$]") as "$"; first done.
+  iDestruct (lc_weaken with "[$]") as "$"; done.
+Qed.
 
-Lemma later_toks_equiv n :
-  ⧗ (n*2) ∗ £ (n*2) -∗ Nat.iter n (λ P, later_tok ∗ P) True.
-Proof.
-  induction n.
-  - by iIntros.
-  - replace (S n * 2) with (2 + n * 2) by lia.
-    iIntros "[[Htr Htr1] [Hlc Hlc1]]".
-    rewrite Nat.iter_succ.
-    iDestruct (IHn with "[$]") as "$".
-    by iFrame.
+Definition later_tokN_pure_step D E P:
+  (later_tokN 2 -∗ ||={E|D, E|D}=> P) -∗
+  |={E|D}⧗=> P.
+Proof using LT.
+  iIntros "HP".
+  iApply (physical_step_step); iSplit.
+  { iMod tr_persistent_zero as "$". iMod (fupd2_mask_subseteq ∅ ∅) as "_"; set_solver. }
+  iIntros "Hlc Htr".
+  iMod (fupd2_mask_subseteq ∅ ∅) as "Hclose"; [set_solver..|].
+  iModIntro. iApply step_fupd2N_intro. iNext. iNext. iMod "Hclose".
+  rewrite later_tokN_unseal /later_tokN_def.
+  iApply "HP".
+  iDestruct (lc_weaken with "Hlc") as "$".
+  { pose proof (f_exp 1); lia. }
+  iDestruct (tr_weaken with "Htr") as "$".
+  { pose proof (f_exp 1); lia. }
 Qed.
 
 Lemma wpc_later_tok_use2_credits s E e Φ Φc :
@@ -42,18 +120,14 @@ Lemma wpc_later_tok_use2_credits s E e Φ Φc :
   (£ 2 -∗ WPC e @ s; E {{ v, later_tok -∗ Φ v }} {{ Φc }}) -∗
   WPC e @ s; E {{ Φ }} {{ Φc }}.
 Proof using H IRISG LT Λ Σ.
-  iIntros (Hnval) "[Htok Hlc] Hwp".
+  iIntros (Hnval) "Htok Hwp".
+  iDestruct (later_tokN_use with "Htok") as "[H£ Htok]".
   iDestruct ("Hwp" with "[$]") as "Hwp".
   iApply (wpc_use_step_strong _ _ _ _ _ _ (later_tok) True%I with "[Htok]"); [by rewrite Hnval|done| |].
   - iSplit; [|done].
     iIntros (P D) "HP".
-    iApply (physical_step_tr_use with "Htok").
-    iApply (physical_step_wand with "HP"). iIntros "HP H⧗ H£".
-    iDestruct (lc_weaken with "[$]") as "$".
-    { pose proof (f_exp 2); lia. }
-    iDestruct (tr_weaken with "[$]") as "$".
-    { pose proof (f_exp 2); lia. }
-    done.
+    iMod "Htok" as "_". iApply (physical_step_wand with "HP").
+    iIntros "$ /= [$ _]".
   - iApply (wpc_mono with "[$]").
     + iIntros (v) "H tok". by iApply "H".
     + iIntros "$ ? //".
@@ -87,21 +161,15 @@ Qed.
 Lemma wpc_later_tok_invest s E e Φ Φc :
   language.to_val e = None →
   later_tok -∗
-  WPC e @ s; E {{ v, Nat.iter 10 (λ P, later_tok ∗ P) True%I -∗ Φ v }} {{ Φc }} -∗
+  WPC e @ s; E {{ v, later_tokN 10 -∗ Φ v }} {{ Φc }} -∗
   WPC e @ s; E {{ Φ }} {{ Φc }}.
 Proof using H IRISG LT Λ Σ.
   iIntros (Hnval) "[Htok Hlc] Hwp".
-  iApply (wpc_use_step_strong _ _ _ _ _ _ (Nat.iter 10 (λ P, later_tok ∗ P) True)%I True%I with "[Htok]"); [by rewrite Hnval|done| |].
+  iApply (wpc_use_step_strong _ _ _ _ _ _ (later_tokN 10)%I True%I with "[Htok]"); [by rewrite Hnval|done| |].
   - iSplit; [|done].
     iIntros (P D) "HP".
-    iApply (physical_step_tr_use with "Htok").
-    iApply (physical_step_wand with "HP"). iIntros "HP H⧗ H£".
-    iFrame.
-    iDestruct (later_toks_equiv 10 with "[-]") as "$"; [|done].
-    iDestruct (lc_weaken with "[$]") as "$".
-    { pose proof (f_exp 2); lia. }
-    iDestruct (tr_weaken with "[$]") as "$".
-    { pose proof (f_exp 2); lia. }
+    iDestruct (later_tokN_use 1 with "Htok") as "[_ Huse]". iMod "Huse" as "_".
+    iApply (physical_step_wand with "HP"). iIntros "$ $".
   - iApply (wpc_mono with "[$]").
     + iIntros (v) "H tok". by iApply "H".
     + iIntros "$ ? //".
@@ -120,28 +188,16 @@ Proof using H IRISG LT Λ Σ.
   assert (∀ σ1 g1, reducible e1 σ1 g1).
   { intros. apply reducible_no_obs_reducible. eauto. }
   iApply wpc_lift_step_physical.
-  { unshelve (eapply reducible_not_val; eauto).
-    { eapply inhabitant. }
-    { eapply inhabitant. }
-  }
-  iSplit; last first.
-  { iLeft in "H". eauto. }
+  { eapply (reducible_not_val _ inhabitant inhabitant); eauto. }
+  iSplit; [iRight in "H"|iLeft in "H"; by iFrame].
   iIntros. iSplit.
   { iMod (fupd_mask_subseteq ∅) as "Hclose"; first set_solver.
     iPureIntro. destruct s; eauto.
   }
-  iIntros. iRight in "H".
-  iApply (physical_step_step); iSplit.
-  { iMod tr_persistent_zero as "$". iMod (fupd_mask_subseteq ∅) as "_"; set_solver. }
-  iIntros "Hlc Htr".
-  iDestruct (lc_weaken (2+2) with "Hlc") as "[H£1 H£2]".
-  { pose proof (f_exp 1); lia. }
-  iDestruct (tr_weaken (2+2) with "Htr") as "[H⧗1 H⧗2]".
-  { pose proof (f_exp 1); lia. }
-  iMod (fupd_mask_subseteq ∅) as "Hclose"; first set_solver.
-  iModIntro. iApply step_fupd2N_intro. iNext. iNext. iMod "Hclose". iModIntro.
+  iIntros.
+  iApply (later_tokN_pure_step). iIntros "[Htok1 Htok2] !>".
   edestruct (pure_step_det _ _ _ _ _ _ _ H1) as (->&->&->&->&->).
-  simpl. iFrame. iApply "H". iFrame.
+  simpl. iFrame. iSplit; last done. iApply ("H" with "[$]").
 Qed.
 
 Lemma wp_later_tok_pure_step `{!Inhabited (state Λ)} `{!Inhabited (global_state Λ)} φ s E e1 e2 Φ:

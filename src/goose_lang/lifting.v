@@ -3,7 +3,7 @@ From iris.proofmode Require Import tactics.
 From iris.algebra Require Import lib.frac_auth auth numbers gmap excl dfrac_agree.
 From iris.bi Require Import fractional.
 From Perennial.iris_lib Require Import dfractional.
-From Perennial.program_logic Require Export weakestpre.
+From Perennial.program_logic Require Export weakestpre later_res.
 From Perennial.program_logic Require Import ectx_lifting.
 From Perennial.Helpers Require Import Transitions.
 From Perennial.Helpers Require Export NamedProps.
@@ -578,9 +578,9 @@ Definition tls (na: naMode) : lock_state :=
   end.
 
 Definition borrowN := nroot.@"borrow".
-Definition crash_borrow_ginv_number : nat := 10%nat.
+Definition crash_borrow_ginv_number : nat := 5%nat.
 Definition crash_borrow_ginv `{!invGS Σ} `{!trGS Σ}
-  := (inv borrowN (⧗ crash_borrow_ginv_number ∗ £ crash_borrow_ginv_number)).
+  := (inv borrowN (later_tokN crash_borrow_ginv_number)).
 
 Global Program Instance goose_irisGS `{G: !gooseGlobalGS Σ}:
   irisGS goose_lang Σ := {
@@ -1309,7 +1309,7 @@ Lemma wp_atomic_op s E l v0 v1 v op :
 Proof.
   iIntros (? Φ) ">Hl HΦ".
   iApply wp_lift_atomic_base_step_no_fork; auto.
-  iIntros (σ1 g1 ns mj D κ κs n) "[Hσ ?] Hg".
+  iIntros (σ1 g1 mj D κ κs n) "[Hσ ?] Hg".
   iDestruct (heap_pointsto_na_acc with "Hl") as "[Hl Hl_rest]".
   iDestruct (@na_heap_read_1 with "Hσ Hl") as %(lk&?&?Hlock).
   destruct lk; inversion Hlock; subst.
@@ -1320,10 +1320,8 @@ Proof.
     eexists _, _, _, _, _.
     constructor.
     eauto. }
-  iNext; iIntros (v2 σ2 g2 efs Hstep); inv_base_step.
-  iMod (global_state_interp_le _ _ _ _ _ κs with "[$]") as "$".
-  { rewrite /step_count_next/=. lia. }
-  iModIntro. iSplit=>//.
+  iIntros (v2 σ2 g2 efs Hstep) "!> !>"; inv_base_step.
+  iSplit=>//.
   iFrame "Hσ ∗". iApply "HΦ".
   iApply "Hl_rest". iFrame.
 Qed.

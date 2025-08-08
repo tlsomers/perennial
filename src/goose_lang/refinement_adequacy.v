@@ -528,7 +528,7 @@ Proof using Hrpre Hhpre Hcpre.
     iDestruct (oracle_agree with "Hor_auth Horacle_frag") as %Heq2'.
 
     iInv "Hpre_inv" as ">H" "Hclo".
-    iApply (physical_step_use_pre_borrowN with "[$]").
+    iMod (physical_step_use_pre_borrowN with "[$]") as "_".
     iPoseProof (@Hwp_crash $! _ _ with "HΦc") as "H".
     iApply physical_step_intro.
     iNext. iIntros "[Hbor1 Hbor2]".

@@ -56,8 +56,9 @@ Proof using later_tokG0.
   iIntros "Hsv".
   iLöb as "IH" forall (e).
   iDestruct "Hsv" as (E2 ? mj_ishare mj_ushare ????? Hsub)
-    "(%Hnval&%Hinvalid&%Heq_mj&%Hle2&%Hinvalid2&Hown&Hownstat&#Hsaved1&#Hsaved2&[Hltok [Hlc1 Hlc2]]&Hitok&%Hlt2&#Hinv)".
+    "(%Hnval&%Hinvalid&%Heq_mj&%Hle2&%Hinvalid2&Hown&Hownstat&#Hsaved1&#Hsaved2&Htok&Hitok&%Hlt2&#Hinv)".
   iEval (rewrite wpc0_unfold).
+  iDestruct (later_tokN_use with "[$]") as "[[[??]_] Hcl]".
   rewrite /wpc_pre. iSplit; last first.
   {
     iIntros (g1 D' κs) "Hg #HC".
@@ -149,6 +150,7 @@ Proof using later_tokG0.
     iDestruct (saved_prop_agree with "Hsaved2 Hsaved2'") as "Hequiv2".
 
     iEval (simpl).
+    
     iApply (lc_fupd_add_later with "[$]"); iModIntro.
     iApply (lc_fupd_add_later with "[$]"); iModIntro.
 
@@ -174,9 +176,9 @@ Proof using later_tokG0.
     iDestruct ("Hwp" with "[$] [$] [$]") as "Hwp".
     iModIntro. iSplit; [by iLeft in "Hwp"|iRight in "Hwp"].
     iIntros (e2 ????).
-    iApply (physical_step_tr_use with "[$]").
+    iMod "Hcl" as "_".
     iApply (physical_step_wand with "(Hwp [//])").
-  iIntros "($&Hg&H&Hefs&HNC) H⧗ H£ !>".
+    iIntros "($&Hg&H&Hefs&HNC) [[Htok _]_]".
     destruct (to_val e2) eqn:Heq_val.
     {
       iEval (rewrite wpc0_unfold /wpc_pre) in "H".
@@ -271,21 +273,7 @@ Proof using later_tokG0.
     }
     iApply "IH".
     iExists _, _, mj_ishare, _, _, _, _, _. iExists _. iFrame "∗".
-    iSplit; first eauto.
-    iFrame "Hsaved1'' Hsaved2''".
-    iSplit; first eauto.
-    iSplit; first eauto.
-    iSplit.
-    { iPureIntro. rewrite /mj_wp. naive_solver. }
-    iSplit; first eauto.
-    iSplit; first eauto.
-    iSplit; first eauto.
-    { assert (2 ≤ f 2) by (pose proof (f_exp 2); lia).
-      iDestruct (tr_weaken 2 with "[$]") as "$"; first done.
-      by iApply (lc_weaken). 
-    }
-    iSplit; first eauto.
-    iExact "Hinv".
+    repeat iSplit; eauto.
   }
 Qed.
 
@@ -299,7 +287,7 @@ Lemma wpc_staged_inv_inuse E1 e Φ Φc Qs P :
   ⊢ WPC e @ E1 {{ Φ }} {{ Φc }}.
 Proof using later_tokG0.
   iIntros (Hnval) "(Hstaged&Hwp)".
-  iDestruct "Hstaged" as (E2 ??? γprop γprop') "(Hown&Hownstat&#Hsaved1&#Hsaved2&[Hltok [Hlc1 Hlc2]]&Hitok&Hinv)".
+  iDestruct "Hstaged" as (E2 ??? γprop γprop') "(Hown&Hownstat&#Hsaved1&#Hsaved2&Htok&Hitok&Hinv)".
   iDestruct "Hinv" as (mj_wp_init mj_ishare Hlt) "#Hinv".
   rewrite /staged_inv.
   rewrite wpc_eq /wpc_def. iIntros (mj).
@@ -331,6 +319,7 @@ Proof using later_tokG0.
   inversion Heq; subst.
   iDestruct (saved_prop_agree with "Hsaved1 Hsaved1'") as "Hequiv1".
   iDestruct (saved_prop_agree with "Hsaved2 Hsaved2'") as "Hequiv2".
+  iDestruct (later_tokN_use with "Htok") as "[[[??]_] Hcl]".
 
   iApply (lc_fupd_add_later with "[$]"); iModIntro.
   iApply (lc_fupd_add_later with "[$]"); iModIntro.
@@ -378,10 +367,9 @@ Proof using later_tokG0.
   iDestruct ("Hwp" with "[$] [$] [$]") as "Hwp".
   iModIntro. iSplit; [by iLeft in "Hwp"|iRight in "Hwp"].
   iIntros (e2 σ2 g2 efs Hstep).
-  
-  iApply (physical_step_tr_use with "[$]").
+  iMod "Hcl" as "_".
   iApply (physical_step_wand with "(Hwp [//])").
-  iIntros "($&Hg&H&Hefs&HNC) H⧗ H£ !>".
+  iIntros "($&Hg&H&Hefs&HNC) [[Htok _] _]".
 
   destruct (to_val e2) eqn:Heq_val.
   {
@@ -507,27 +495,14 @@ Proof using later_tokG0.
   iAssert (staged_value_inuse e2 ⊤ ⊤ mj mj_wp mj_ukeep Φ Φc P) with "[-]" as "Hsv".
   {
     iExists _, _, mj_ishare, _, _, _, _, _. iExists _. iFrame "∗".
-    iSplit; first eauto.
-    iFrame "Hsaved1'' Hsaved2''".
-    iSplit; first eauto.
-    iSplit; first eauto.
-    iSplit; first eauto.
-    iSplit.
+    repeat iSplit; eauto.
     { iPureIntro. rewrite /mj_wp.
       etransitivity; first eapply Qp.le_min_l.
       etransitivity; first eapply Qp.le_min_l.
       eapply Qp.le_min_r. }
-    iSplit.
     { iPureIntro. rewrite /mj_wp.
       etransitivity; first eapply Qp.le_min_l.
       eapply Qp.le_min_r. }
-    iSplit; first eauto.
-    { assert (2 ≤ f 2) by (pose proof (f_exp 2); lia).
-      iDestruct (tr_weaken 2 with "[$]") as "$"; first done.
-      by iApply (lc_weaken). 
-    }
-    iSplit; first eauto.
-    iExact "Hinv".
   }
   iApply (wpc_staged_inv_aux with "[$]").
 Qed.
