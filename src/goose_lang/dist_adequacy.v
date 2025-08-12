@@ -21,7 +21,7 @@ Proof.
   eapply (wpd_dist_adequacy_inv Σ _ _ _ _ _).
   iIntros (Hinv ??) "Hntr Hlc".
   iMod (ffi_global_init _ _ g.(global_world)) as (ffi_namesg) "(Hgw&Hgstart)"; first by auto.
-  iMod (credit_name_init (crash_borrow_ginv_number)) as (name_credit) "(Hcred_auth&Hcred&Htok)".
+  iMod (credit_name_init) as (name_credit) "Htok".
   iMod (proph_map_init κs g.(used_proph_id)) as (proph_names) "Hproph".
 
   set (hG := GooseGlobalGS _ _ _ proph_names (creditGS_update_pre _ _ name_credit) ffi_namesg).
