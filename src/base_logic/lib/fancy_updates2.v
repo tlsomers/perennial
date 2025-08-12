@@ -82,29 +82,10 @@ Proof.
 Qed.
 
 (* Might need to include empty in defin of fancy_updates *)
-(*
-Lemma fupd2_fupd E1 E2 P : (||={E1 | ∅,E2 | ∅}=> P) ⊢ |={E1,E2}=> P.
-Proof.
-  rewrite ?uPred_fupd2_eq ?uPred_fupd_eq /uPred_fupd2_def/uPred_fupd_def.
-  rewrite /MaybeEn2.
-  rewrite /coPset_inr/coPset_inl.
-Abort.
-*)
 
-Lemma fupd_fupd2 E1a E2a Eb P : (|={E1a,E2a}=> P) ⊢ ||={E1a | Eb,E2a | Eb}=> P.
+Lemma fupd_fupd2_emp E1 E2 P : (||={E1 | ∅,E2 | ∅}=> P) ⊣⊢ |={E1,E2}=> P.
 Proof.
-  rewrite ?uPred_fupd2_eq ?uPred_fupd_eq /uPred_fupd2_def/uPred_fupd_def.
-  rewrite ownE_op; last auto.
-  rewrite ownE_op; last auto.
-  rewrite ownE_op; last first.
-  { apply disjoint_union_l; split; auto. }
-  rewrite ownE_op; last auto.
-  rewrite ownE_op; last first.
-  { apply disjoint_union_l; split; auto. }
-  rewrite ownE_op; last auto.
-  iIntros "H (Hw&((Hae&He1)&He2))".
-  iMod ("H" with "[$]") as ">($&($&$))".
-  eauto.
+  rewrite ?uPred_fupd2_eq ?uPred_fupd_eq /uPred_fupd2_def /uPred_fupd_def !MaybeEn2_empty !right_id_L //.
 Qed.
 
 Lemma fupd2_trans E1a E1b E2a E2b E3a E3b P :
@@ -204,6 +185,13 @@ Proof.
   rewrite fupd2_trans.
   replace (E1a ∪ Ea ∖ E1a) with Ea by (by apply union_difference_L).
   replace (E1b ∪ Eb ∖ E1b) with Eb by (by apply union_difference_L). auto.
+Qed.
+
+Lemma fupd_fupd2 E1a E2a Eb P : (|={E1a,E2a}=> P) ⊢ ||={E1a | Eb,E2a | Eb}=> P.
+Proof.
+  iIntros "H". rewrite -fupd_fupd2_emp.
+  iDestruct (fupd2_mask_frame_r _ _ _ _ ∅ Eb with "H") as "H"; [set_solver..|].
+  rewrite !left_id_L !right_id_L //.
 Qed.
 
 Global Instance into_wand_fupd2 Ea Eb p q R P Q :

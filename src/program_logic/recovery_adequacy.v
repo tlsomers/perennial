@@ -27,7 +27,7 @@ Fixpoint step_fupdN_fresh (ns: list nat) (HG0: generationGS Λ Σ)
   match ns with
   | [] => P HG0
   | (n :: ns) =>
-      |={⊤|⊤}⧗=>^(S n)
+      ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^(S n) ||={⊤|∅, ⊤|⊤}=>
       ∃ HG' : generationGS Λ Σ,
        step_fupdN_fresh ns HG' P
   end%I.
@@ -41,7 +41,7 @@ Proof.
   - iIntros "H Hwand". iApply "Hwand". eauto.
   - iIntros "H Hwand". rewrite /step_fupdN_fresh -/step_fupdN_fresh.
     iApply (physical_stepN_wand with "H").
-    iDestruct 1 as (Hg') "H".
+    iMod 1 as (Hg') "H".
     iExists _. by iApply (IHns with "H").
 Qed.
 
@@ -51,7 +51,7 @@ Lemma wptp_recv_strong_normal_adequacy {CS Φ Φinv Φr κs' s HG} n mj D r1 e1 
   global_state_interp g1 mj D (κs ++ κs') -∗
   wpr CS s HG ⊤ e1 r1 Φ Φinv Φr -∗
   wptp s t1 -∗ NC 1-∗ (
-    |={⊤|⊤}⧗=>^n ||={⊤|⊤, ⊤|⊤}=>
+    ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^n ||={⊤|∅, ⊤|⊤}=>
     ∃ e2 t2',
     ⌜ t2 = e2 :: t2' ⌝ ∗
     state_interp σ2 (length t2') ∗
@@ -79,7 +79,7 @@ Lemma wptp_recv_normal_progress {CS Φ Φinv Φr κs' HG} n ns mj D r1 e1 t1 κs
   wpr CS NotStuck HG ⊤ e1 r1 Φ Φinv Φr -∗
   wptp NotStuck t1 -∗ NC 1-∗ step_fupdN_fresh ns HG (λ HG',
     ⌜ HG' = HG ⌝ ∗
-    |={⊤|⊤}⧗=>^n ||={⊤|⊤, ∅|∅}=>
+    ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^n ||={⊤|∅, ∅|∅}=>
         ⌜ not_stuck e2 σ2 g2 ⌝ ).
 Proof.
   iIntros (Hstep Hel) "Hσ Hg He Ht HNC".
@@ -108,7 +108,7 @@ Lemma wptp_recv_strong_crash_adequacy {CS Φ Φinv Φinv' Φr κs' s HG} mj D ns
   wpr CS s HG ⊤ e1 r1 Φ Φinv Φr -∗
   □ (∀ HG', Φinv HG' -∗ □ Φinv' HG') -∗
   wptp s t1 -∗ NC 1-∗ step_fupdN_fresh ns HG (λ HG',
-    (|={⊤|⊤}⧗=>^n ||={⊤|⊤, ⊤|⊤}=> (∃ e2 t2',
+    (||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^n ||={⊤|∅, ⊤|⊤}=> (∃ e2 t2',
     ⌜ t2 = e2 :: t2' ⌝ ∗
     state_interp σ2 (length t2') ∗
     global_state_interp g2 mj D κs' ∗
@@ -130,18 +130,20 @@ Proof.
   rewrite {1}/step_fupdN_fresh -/step_fupdN_fresh.
   destruct ρ2 as (?&[σ2_pre_crash g2_pre_crash]).
   rewrite -assoc wpr_unfold /wpr_pre.
-  iPoseProof (@wptp_strong_crash_adequacy with "[$] [$] [$] [$] [$]") as "H"; eauto.
-  rewrite Nat.iter_succ_r.
-  iApply (physical_stepN_wand with "H"). iIntros ">H".
-  iDestruct "H" as (e2 t2' ?) "(H&Hσ&Hg&HC)".
+  iMod (@wptp_strong_crash_adequacy with "[$] [$] [$] [$] [$]") as "H"; eauto.
+  iModIntro. rewrite Nat.iter_succ_r.
+  iApply (physical_stepN_wand with "H").
+  rewrite -physical_step_fupd_l -fupd_fupd2_emp.
+  iMod 1 as (e2 t2' ?) "(H&Hσ&Hg&HC)".
   iDestruct ("H" with "[//] Hσ Hg") as "H".
-  iApply (physical_step_subseteq ⊤ D); auto.
-  iApply (physical_step_wand with "H").
-  iDestruct 1 as (HG') "(HNC&Hσ&Hg&Hr)".
+  iApply (physical_stepN_physical_step2 0).
+  iApply (physical_step2_wand_later with "H"); [set_solver..|].
+  iIntros "!> (%HG'&HNC&Hσ&Hg&Hr) /=".
+  iApply fupd2_mask_intro_subseteq; [set_solver..|].
   destruct s0.
   - iDestruct "Hr" as "(_&Hr)".
     simpl in *.
-    iPoseProof (IH with "[Hσ] [Hg] Hr [] [] HNC") as "H"; eauto.
+    iPoseProof (IH with "[Hσ] [Hg] Hr [] [] HNC") as "$"; eauto.
   - iExists HG'.
     iAssert (□Φinv' HG')%I as "#Hinv'".
     { iDestruct "Hr" as "(Hr&_)".
@@ -166,7 +168,7 @@ Lemma wptp_recv_crash_progress {CS Φ Φinv Φinv' Φr κs' HG} mj D ns n r1 e1 
   wpr CS NotStuck HG ⊤ e1 r1 Φ Φinv Φr -∗
   □ (∀ HG', Φinv HG' -∗ □ Φinv' HG') -∗
   wptp NotStuck t1 -∗ NC 1-∗ step_fupdN_fresh ns HG (λ HG',
-    (|={⊤|⊤}⧗=>^n ||={⊤|⊤, ∅|∅}=>
+    (||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^n ||={⊤|∅, ∅|∅}=>
     ⌜ not_stuck ee2 σ2 g2 ⌝)).
 Proof.
   revert HG e1 t1 κs κs' t2 σ1 g1 σ2 Φ.
@@ -182,14 +184,16 @@ Proof.
   rewrite {1}/step_fupdN_fresh -/step_fupdN_fresh.
   destruct ρ2 as (?&[σ2_pre_crash g2_pre_crash]).
   rewrite -assoc wpr_unfold /wpr_pre.
-  iPoseProof (@wptp_strong_crash_adequacy with "[$] [$] [$] [$] [$]") as "H"; eauto.
-  rewrite Nat.iter_succ_r.
-  iApply (physical_stepN_wand with "H"). iIntros ">H".
-  iDestruct "H" as (e2 t2' ?) "(H&Hσ&Hg&HC)".
+  iMod ( @wptp_strong_crash_adequacy with "[$] [$] [$] [$] [$]") as "H"; eauto.
+  iModIntro. rewrite Nat.iter_succ_r.
+  iApply (physical_stepN_wand with "H").
+  rewrite -physical_step_fupd_l -fupd_fupd2_emp.
+  iMod 1 as (e2 t2' ?) "(H&Hσ&Hg&HC)".
   iDestruct ("H" with "[//] Hσ Hg") as "H".
-  iApply (physical_step_subseteq ⊤ D); auto.
-  iApply (physical_step_wand with "H").
-  iDestruct 1 as (HG') "(HNC&Hσ&Hg&Hr)".
+  iApply (physical_stepN_physical_step2 0).
+  iApply (physical_step2_wand_later with "H"); [set_solver..|].
+  iIntros "!> (%HG'&HNC&Hσ&Hg&Hr) /=".
+  iApply fupd2_mask_intro_subseteq; [set_solver..|].
   destruct s0.
   - iDestruct "Hr" as "(_&Hr)".
     simpl in *.
@@ -213,7 +217,7 @@ Lemma wptp_recv_strong_adequacy {CS Φ Φinv Φinv' Φr κs' s HG} ns mj D n r1 
   wpr CS s HG ⊤ e1 r1 Φ Φinv Φr -∗
   □ (∀ HG', Φinv HG' -∗ □ Φinv' HG') -∗
   wptp s t1 -∗ NC 1-∗ step_fupdN_fresh ns HG (λ HG',
-    (|={⊤|⊤}⧗=>^n ||={⊤|⊤, ⊤|⊤}=> (∃ e2 t2',
+    (||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^n ||={⊤|∅, ⊤|⊤}=> (∃ e2 t2',
     ⌜ t2 = e2 :: t2' ⌝ ∗
     state_interp σ2 (length t2') ∗
     global_state_interp g2 mj D κs' ∗
@@ -247,7 +251,7 @@ Lemma wptp_recv_progress {CS Φ Φinv Φinv' Φr κs' HG} ns mj D n r1 e1 t1 κs
   wpr CS NotStuck HG ⊤ e1 r1 Φ Φinv Φr -∗
   □ (∀ HG', Φinv HG' -∗ □ Φinv' HG') -∗
   wptp NotStuck t1 -∗ NC 1-∗ step_fupdN_fresh ns HG (λ HG',
-    (|={⊤|⊤}⧗=>^n ||={⊤|⊤ , ∅|∅}=> 
+    (||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^n ||={⊤|∅ , ∅|∅}=> 
     ⌜ not_stuck e2 σ2 g2 ⌝)).
 Proof.
   intros. destruct stat.
@@ -279,8 +283,8 @@ Proof. simpl. lia. Qed. *)
 
 Lemma step_fupdN_fresh_rearrange {Λ Σ} `{!irisGS Λ Σ} {HG : generationGS Λ Σ} φ ns k:
   (|={⊤}=> step_fupdN_fresh ns _
-                  (λ _, |={⊤|⊤}⧗=>^k ||={⊤|⊤, ∅|∅}=> ⌜φ⌝)) -∗
-    ||={⊤|⊤, ⊤|⊤}=> |={⊤|⊤}⧗=>^((sum_list $ fmap S $ ns) + k) ||={⊤|⊤, ∅|∅}=> ⌜φ⌝.
+                  (λ _, ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^k ||={⊤|∅, ∅|∅}=> ⌜φ⌝)) -∗
+    ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^((sum_list $ fmap S $ ns) + k) ||={⊤|∅, ∅|∅}=> ⌜φ⌝.
 Proof.
   iIntros "H".
   iInduction ns as [| n' ns] "IH" forall (HG).
@@ -288,11 +292,12 @@ Proof.
     simpl. by iMod "H".
   - iMod NC_alloc as (Hc') "HNC".
     rewrite /step_fupdN_fresh -/step_fupdN_fresh.
-    iMod "H". simpl. iModIntro. iEval (rewrite -Nat.add_assoc Nat.iter_add).
+    iMod "H" as ">H". simpl. iModIntro. iEval (rewrite -Nat.add_assoc Nat.iter_add).
     rewrite -!Nat.iter_succ.
     iApply (physical_stepN_S_fupd).
     iApply (physical_stepN_wand with "H").
-    iDestruct 1 as (HG') "H".
+    rewrite -fupd_fupd2_emp.
+    iMod 1 as (HG') "H".
     iApply ("IH" $! HG' with "H").
 Qed.
 
@@ -302,7 +307,7 @@ Lemma step_fupdN_fresh_soundness {Λ Σ} `{!invGpreS Σ} `{!trGpreS Σ} `{Htrgen
   (∀ (Hi: invGS Σ) (Htr : trGS Σ) (Hc: crashGS Σ), ⧗ n ∗ £ n -∗ NC 1 ={⊤}=∗
     ∃ (HI: irisGS Λ Σ) (HG:generationGS Λ Σ) (Hpf1: iris_invGS = Hi) (Hpf2: iris_trGS = Htr) (Hpf3: iris_trGen = Htrgen) (Hpf4: iris_crashGS = Hc),
       (|={⊤}=> step_fupdN_fresh ns HG (λ _,
-        |={⊤|⊤}⧗=>^k ||={⊤|⊤, ∅|∅}=>
+        ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^k ||={⊤|∅, ∅|∅}=>
         ⌜φ⌝))%I) →
   φ.
 Proof.

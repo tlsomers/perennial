@@ -92,9 +92,10 @@ Proof using later_tokG0.
   iMod (fupd2_mask_subseteq E' (⊤ ∖ D ∖ E2)) as "Hclo"; [set_solver..|].
   iModIntro.
   iSplit; iMod "Hclo"; [by iLeft in "H"|iRight in "H"].
-  iIntros. iMod "Hcl" as "_".
-  iApply (physical_step_wand with "(H [//])").
-  iIntros "($&Hg&Hwpc0&$) [[Htok _] _]".
+  iIntros. iApply (physical_step2_step_update with "[Hcl]").
+  { iMod "Hcl". iIntros "!> /= [Htok _]". iExact "Htok". }
+  iApply (physical_step2_wand_later with "(H [//])"); [done..|].
+  iIntros "!> ($&Hg&Hwpc0&$) Htok".
   iApply (fupd2_mask_intro_subseteq); [set_solver..|].
   iFrame.
   iApply (wpc0_strong_mono with "Hwpc0"); auto.

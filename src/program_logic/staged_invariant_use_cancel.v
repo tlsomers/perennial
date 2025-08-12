@@ -164,8 +164,10 @@ Proof using later_tokG0.
     iDestruct ("Hwp" with "[$] [$] [$]") as "Hwp". iModIntro.
     iSplit; [by iLeft in "Hwp"|iRight in "Hwp"].
     iIntros (e2 ????).
-    iMod "Hcl" as "_". iApply (physical_step_wand with "(Hwp [//])").
-    iIntros "(Hstate&Hg&H&Hefs&HNC) /= [Htok _]".
+    iApply (physical_step2_step_update with "[Hcl]").
+    { iMod "Hcl". iIntros "!> /= [H _]". iExact "H". }
+    iApply (physical_step2_wand_later with "(Hwp [//])"); [done..|].
+    iIntros "!> (Hstate&Hg&H&Hefs&HNC) Htok".
     iFrame "Hstate".
 
     destruct (to_val e2) eqn:Heq_val.
@@ -346,9 +348,10 @@ Proof using later_tokG0.
   iDestruct ("Hwp" with "[$] [$] [$]") as "Hwp". iModIntro.
   iSplit; [by iLeft in "Hwp"|iRight in "Hwp"].
   iIntros (e2 σ2 g2 efs Hstep).
-  
-  iMod "Hcl". simpl. iApply (physical_step_wand with "(Hwp [//])").
-  iIntros "($&Hg&H&Hefs&HNC) [Htok _]".
+  iApply (physical_step2_step_update with "[Hcl]").
+  { iMod "Hcl". iIntros "!> /= [Htok _]". iExact "Htok". }
+  iApply (physical_step2_wand_later with "(Hwp [//])"); [done..|].
+  iIntros "!> ($&Hg&H&Hefs&HNC) Htok".
   destruct (to_val e2) eqn:Heq_val.
   {
     iEval (rewrite wpc0_unfold /wpc_pre) in "H".

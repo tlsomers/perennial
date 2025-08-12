@@ -86,8 +86,8 @@ Proof.
   iDestruct ("H" $! _ σ1 with "Hσ Hg [$]") as "H".
   iSplit. { iDestruct "H" as "[$ _]". }
   iIntros (e2 σ2 g2 efs Hstep).
-  iApply (physical_step_wand with "(H [//])").
-  iIntros "($ & Hg & H & $ & HNC)".
+  iApply (physical_step2_wand_later with "(H [//])"); [done..|].
+  iIntros "!> ($ & Hg & H & $ & HNC)".
   - destruct (atomic _ _ _ _ _ _ _ Hstep) as [v <-%of_to_val].
     iDestruct (wpc0_value_inv' with "H") as "H".
     rewrite to_of_val.
@@ -104,6 +104,7 @@ Proof.
   iIntros "H". iApply wp_ncatomic; auto. iMod "H". iModIntro. iApply (wp_strong_mono with "H"); eauto.
   iIntros (?) "H". iModIntro. iMod "H". eauto.
 Qed.
+
 
 (** In this stronger version of [wp_step_fupdN], the masks in the
    step-taking fancy update are a bit weird and somewhat difficult to
@@ -133,19 +134,15 @@ Proof.
   { iDestruct "H" as "(_ & HP & H)". iMod "HP".
     iDestruct ("H" $! _) as "[H _]". iDestruct ("H" with "[$] [$] [$]") as "[>$ _]". done. }
   iIntros.
+  iApply (physical_step2_intro). iIntros "Hcl".
   iApply (physical_step_fupdN E2 _). iSplit.
-  { iDestruct "H" as "[H _]". iMod ("H" with "[$] [$]") as "$".
-    iApply fupd2_mask_intro; set_solver.
-  }
-  iDestruct "H" as "[_ [H Hwp]]".
-  iSplitL "H".
-  { iApply fupd_fupd2. iMod "H".
-    iModIntro. iApply step_fupdN_step_fupd2N.
-    iApply (step_fupdN_wand with "H"). iNext. iIntros ">H //".
-  }
+  { iDestruct "H" as "[H _]". by iMod ("H" with "[$] [$]") as "$". }
+  iDestruct "H" as "[_ [$ Hwp]]".
   iDestruct ("Hwp" $! _) as "[Hwp _]".
-  iApply (physical_step_wand with "(Hwp [$] [$] [$] [//])").
-  iIntros "($ & $ & Hwp & $) HP !>".
+  iDestruct (physical_step2_intro_inv with "(Hwp [$] [$] [$] [//]) [$]") as "H".
+  iApply (physical_step_wand with "H").
+  iIntros "H HP !>". iMod (fupd2_left_emp_all with "H") as "($ & $ & Hwp & $)".
+  iModIntro.
   iApply (wpc0_strong_mono with "Hwp"); auto.
   { destruct (to_val _); eauto. }
   iSplit; last by auto.
@@ -415,5 +412,29 @@ Section proofmode_classes.
     iApply wp_fupd.
     iApply (wp_wand with "(Hinner Hα)").
     iIntros (v) ">[Hβ HΦ]". iApply "HΦ". by iApply "Hclose".
+  Qed.
+
+  Global Instance elim_modal_step_upd_wp_1 E1 E2 P s e Φ :
+    TCEq (to_val e) None →
+    ElimModal (E2 ⊆ E1) false false (|~{E1, E2}~> P) emp (WP e @ s ; E1 {{ Φ }}) (WP e @ s ; E2 {{ v, P -∗ Φ v }})%I.
+  Proof.
+    rewrite /ElimModal /= wp_eq /wp_def. iIntros (??) "[HP HPQ]".
+    by iApply (wpc_step_update_strong with "[$] (HPQ [//])").
+  Qed.
+  Global Instance elim_modal_step_upd_step_upd_2 E1 E2 P s e Φ :
+    TCEq (to_val e) None →
+    ElimModal (E1 ⊆ E2) false false (|~{E1}~> P) emp (WP e @ s ; E2 {{ Φ }}) (WP e @ s ; E2∖E1 {{ v, P -∗ Φ v }})%I.
+  Proof.
+    rewrite /ElimModal /=. iIntros (? Hle) "[Hupd HPQ]".
+    iDestruct (step_update_frame _ _ (E2 ∖ E1) with "Hupd") as "Hupd"; [set_solver..|].
+    rewrite <-union_difference_L, (left_id_L ∅ (∪)); try done.
+    iMod "Hupd" as "_". by iApply "HPQ".
+  Qed.
+  Global Instance elim_modal_step_upd_step_upd_3 E P s e Φ :
+    TCEq (to_val e) None →
+    ElimModal True false false (|~~> P) emp (WP e @ s ; E {{ Φ }}) (WP e @ s ; E {{ v, P -∗ Φ v }})%I.
+  Proof.
+    rewrite /ElimModal /=. iIntros (? Hle) "[Hupd HPQ]".
+    iMod "Hupd" as "_". rewrite difference_empty_L. by iApply "HPQ".
   Qed.
 End proofmode_classes.
