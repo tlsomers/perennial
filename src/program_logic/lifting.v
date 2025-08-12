@@ -21,7 +21,7 @@ Lemma wp_lift_step_ncfupdN s E Φ e1 :
   (∀ σ1 g1 mj D κ κs nt, state_interp σ1 nt -∗ global_state_interp g1 mj D (κ ++ κs) -∗
     (|NC={E,∅}=> ⌜if s is NotStuck then reducible e1 σ1 g1 else True⌝) ∧
     ∀ e2 σ2 g2 efs, ⌜prim_step e1 σ1 g1 κ e2 σ2 g2 efs⌝ -∗
-      |NC={E,∅}=> |={∅|∅}⧗=> |NC={∅,E}=>
+      |NC={E,∅}=> |={∅}⧗=> |NC={∅,E}=>
       state_interp σ2 (length efs + nt) ∗
       global_state_interp g2 mj D κs ∗
       WP e2 @ s; E {{ Φ }} ∗
@@ -36,15 +36,15 @@ Proof.
   rewrite ncfupd_eq.
   iSplit.
   { iDestruct ("H" with "HNC") as ">[$ _]". iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver+..|done]. }
-  iIntros. iApply (physical_step_atomic ∅ ∅).
+  iIntros. iApply (physical_step2_intro). iIntros "Hcl".
+  iApply (physical_step_atomic ∅ ∅).
   iDestruct ("H" with "[//] HNC") as ">[H HNC]".
-  iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver+..|].
   iModIntro. iApply (physical_step_wand with "H").
-  iIntros "H". iMod "Hclo". iMod ("H" with "HNC") as "[($ & $ & He & Hef) HNC]".
-  iModIntro. iFrame. iSplitL "He".
+  iIntros "H". iMod ("H" with "HNC") as "[($ & $ & He & Hef) HNC]".
+  iModIntro. iMod "Hcl". iModIntro. iFrame. iSplitL "He".
   - iApply wpc0_wpc.
     iApply (wpc_strong_mono' with "[$]"); auto.
-    destruct (to_val); set_solver.
+    destruct (to_val e2); set_solver.
   - iApply (big_sepL_mono with "Hef")=>???/=. iApply wpc0_wpc.
 Qed.
 
@@ -53,7 +53,7 @@ Lemma wp_lift_step_fupdN s E Φ e1 :
   (∀ σ1 g1 mj D κ κs nt, state_interp σ1 nt -∗ global_state_interp g1 mj D (κ ++ κs) -∗
     (|={E,∅}=> ⌜if s is NotStuck then reducible e1 σ1 g1 else True⌝) ∧
     ∀ e2 σ2 g2 efs, ⌜prim_step e1 σ1 g1 κ e2 σ2 g2 efs⌝ -∗
-      |={E|∅}⧗=>
+      |={E}⧗=>
       state_interp σ2 (length efs + nt) ∗
       global_state_interp g2 mj D κs ∗
       WP e2 @ s; E {{ Φ }} ∗
@@ -67,10 +67,9 @@ Proof.
   iSpecialize ("H" with "[$] [$]").
   iSplit.
   { iDestruct ("H") as "[>H _]". iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver+..|done]. }
-  iIntros. iApply (physical_step_atomic E ∅).
-  iMod (fupd2_mask_subseteq E ∅) as "Hclo"; [set_solver+..|].
-  iModIntro. iApply (physical_step_wand with "(H [//])").
-  iIntros "($ & $ & He & Hef)". iMod "Hclo". iModIntro. iFrame. iSplitL "He".
+  iIntros. iApply (physical_step2_intro). iIntros "Hcl".
+  iApply (physical_step_wand with "(H [//])").
+  iIntros "($ & $ & He & Hef)". iMod "Hcl". iModIntro. iFrame. iSplitL "He".
   - iApply wpc0_wpc.
     iApply (wpc_strong_mono' with "[$]"); auto.
     destruct (to_val); set_solver.
@@ -115,8 +114,7 @@ Proof.
   iMod ("H" with "[$] [$]") as "($&N)".
   iSplit; first done.
   iIntros. iApply physical_step_intro.
-  iSpecialize ("N" with "[//]"). iNext.
-  iApply fupd_fupd2. by iApply "N".
+  iDestruct ("N" with "[//]") as "$".
 Qed.
 
 (*
@@ -134,7 +132,7 @@ Qed.
 Lemma wp_lift_pure_step_no_fork_pstep `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E Φ e1 :
   (∀ σ1 g1, if s is NotStuck then reducible e1 σ1 g1 else to_val e1 = None) →
   (∀ κ σ1 g1 e2 σ2 g2 efs, prim_step e1 σ1 g1 κ e2 σ2 g2 efs → κ = [] ∧ σ2 = σ1 ∧ g2 = g1 ∧ efs = []) →
-  (∀ κ e2 efs σ g, ⌜prim_step e1 σ g κ e2 σ g efs⌝ -∗ |={E|∅}⧗=> WP e2 @ s; E {{ Φ }})
+  (∀ κ e2 efs σ g, ⌜prim_step e1 σ g κ e2 σ g efs⌝ -∗ |={E}⧗=> WP e2 @ s; E {{ Φ }})
   ⊢ WP e1 @ s; E {{ Φ }}.
 Proof.
   iIntros (Hsafe Hstep) "H". iApply wp_lift_step_fupdN.
@@ -157,9 +155,9 @@ Proof.
   iIntros (??) "H".
   iApply (wp_lift_pure_step_no_fork_pstep); try done.
   iIntros. iApply physical_step_step. iSplit.
-  { iMod (tr_persistent_zero) as "$". iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver+..|done]. }
+  { iMod (tr_persistent_zero) as "$". iMod (fupd_mask_subseteq ∅) as "Hclo"; [set_solver|done]. }
   iIntros "Hlc Htr". rewrite f_zero /=.
-  iMod ("H" with "[//] [$] [$]") as "H". iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver+..|].
+  iMod ("H" with "[//] [$] [$]") as "H". iMod (fupd_mask_subseteq ∅) as "Hclo"; [set_solver+..|].
   do 4 iModIntro. iMod "Hclo". by iMod "H".
 Qed.
 
@@ -251,7 +249,7 @@ Lemma wp_lift_pure_det_step_no_fork_pstep `{!Inhabited (state Λ), !Inhabited (g
   (∀ σ1 g1, if s is NotStuck then reducible e1 σ1 g1 else to_val e1 = None) →
   (∀ σ1 g1 κ e2' σ2 g2 efs', prim_step e1 σ1 g1 κ e2' σ2 g2 efs' →
     κ = [] ∧ σ2 = σ1 ∧ g2 = g1 ∧ e2' = e2 ∧ efs' = []) →
-  (|={E|∅}⧗=> WP e2 @ s; E {{ Φ }}) ⊢ WP e1 @ s; E {{ Φ }}.
+  (|={E}⧗=> WP e2 @ s; E {{ Φ }}) ⊢ WP e1 @ s; E {{ Φ }}.
 Proof.
   iIntros (? Hpuredet) "H". iApply (wp_lift_pure_step_no_fork_pstep s E); try done.
   { naive_solver. }
@@ -274,7 +272,7 @@ Qed.
 Lemma wp_pure_step_pstep `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E e1 e2 φ n Φ :
   PureExec φ n e1 e2 →
   φ →
-  (|={E|∅}⧗=>^n WP e2 @ s; E {{ Φ }}) ⊢ WP e1 @ s; E {{ Φ }}.
+  (|={E}⧗=>^n WP e2 @ s; E {{ Φ }}) ⊢ WP e1 @ s; E {{ Φ }}.
 Proof.
   iIntros (Hexec Hφ) "Hwp". specialize (Hexec Hφ).
   iInduction Hexec as [e|n e1 e2 e3 [Hsafe ?]] "IH"; [done|simpl].

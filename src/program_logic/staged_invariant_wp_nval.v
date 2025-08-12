@@ -86,7 +86,7 @@ Proof using later_tokG0.
       etransitivity; first eapply B.
       done.
   }
-  iMod "Hcl" as "_". iMod "Hstep" as "_". iApply (logical_step_intro).
+  iMod "Hcl" as "_". iMod "Hstep" as "_". iModIntro.
   simpl. iIntros "Hwand [Htok _]" (??) "Hg HNC".
   iMod ("Hwand" with "Hg HNC") as "(Hg&(#Hshift&HQs'&HR)&HNC)".
   iMod (saved_prop_alloc Qs') as (γprop_stored') "#Hsaved1''".

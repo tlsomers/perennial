@@ -84,8 +84,8 @@ Proof.
   { inversion Hcrash; subst; eauto. }
   iMod (trace_reinit _ σ_post_crash.(trace) σ_post_crash.(oracle)) as (name_trace) "(Htr&Htrfrag&Hor&Hofrag)".
   iMod (globals_reinit _) as (globals_name) "[Hg_auth Hglobals]".
-  iApply physical_step_fupd.
-  iApply physical_step_intro. iNext.
+  iApply physical_step2_intro. iIntros "Hcl".
+  iApply physical_step_intro. iModIntro. iMod "Hcl".
   iMod (NC_alloc) as (Hc') "HNC".
   (* TODO(RJ): reformulate na_heap_reinit and trace_reinit to better match what we need here. *)
   set (hL' := GooseLocalGS Σ Hc' ffi_names

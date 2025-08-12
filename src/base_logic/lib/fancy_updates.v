@@ -31,9 +31,20 @@ Proof.
   rewrite -leibniz_equiv_iff => x.
   rewrite elem_coPset_suffixes_of elem_coPset_suffixes. naive_solver set_solver.
 Qed.
+Lemma coPset_suffixes_of_empty p :
+  coPset_suffixes_of p ∅ = ∅.
+Proof.
+  rewrite -leibniz_equiv_iff => x.
+  rewrite elem_coPset_suffixes_of. naive_solver set_solver.
+Qed.
 
 Definition coPset_inl (E: coPset) : coPset := coPset_suffixes_of (positives_flatten (1::nil))%positive E.
 Definition coPset_inr (E: coPset) : coPset := coPset_suffixes_of (positives_flatten (2::nil))%positive E.
+
+Lemma coPset_inl_empty : coPset_inl ∅ = ∅.
+Proof. rewrite /coPset_inl coPset_suffixes_of_empty //. Qed.
+Lemma coPset_inr_empty : coPset_inr ∅ = ∅.
+Proof. rewrite /coPset_inr coPset_suffixes_of_empty //. Qed.
 
 Lemma coPset_suffixes_of_infinite p E:
   (¬ set_finite E) → (¬ set_finite (coPset_suffixes_of p E)).
@@ -92,6 +103,8 @@ Proof. rewrite /MaybeEn1/coPset_inr/coPset_inl -?coPset_suffixes_of_disj //. Qed
 Lemma MaybeEn_infinite E:
   (¬ set_finite E) → (¬ set_finite (MaybeEn1 E)).
 Proof. intros Hnf. by do 2 apply coPset_suffixes_of_infinite. Qed.
+Lemma MaybeEn1_empty : MaybeEn1 ∅ = ∅.
+Proof. rewrite /MaybeEn1 !coPset_inr_empty //. Qed.
 
 Lemma MaybeEn2_union E1 E2 : MaybeEn2 (E1 ∪ E2) = MaybeEn2 E1 ∪ MaybeEn2 E2.
 Proof.
@@ -101,6 +114,8 @@ Proof. rewrite /MaybeEn2/coPset_inr/coPset_inl -?coPset_suffixes_of_disj //. Qed
 Lemma MaybeEn2_infinite E:
   (¬ set_finite E) → (¬ set_finite (MaybeEn2 E)).
 Proof. intros Hnf. by do 2 apply coPset_suffixes_of_infinite. Qed.
+Lemma MaybeEn2_empty : MaybeEn2 ∅ = ∅.
+Proof. rewrite /MaybeEn2 coPset_inl_empty coPset_inr_empty //. Qed.
 
 Lemma ownE_op_MaybeEn `{!invGS Σ} E1 E2 :
   E1 ## E2 → ownE (MaybeEn1 (E1 ∪ E2)) ⊣⊢ ownE (MaybeEn1 E1) ∗ ownE (MaybeEn1 E2).

@@ -131,7 +131,7 @@ Context `{PRI: !pri_invG IRISG}.
       iSpecialize ("Hwpc" with "[$] [$] [$]").
       iSplit. { iDestruct "Hwpc" as "[$ _]". }
       iIntros.
-      iApply (physical_step_wand_later with "(Hwpc [//])").
+      iApply (physical_step2_wand_later with "(Hwpc [//])"); [done..|].
       iIntros "!> ($&Hg&Hwpc&Hefs&$)".
       iSplitL "Hg Hclo".
       { iApply "Hclo"; auto. }

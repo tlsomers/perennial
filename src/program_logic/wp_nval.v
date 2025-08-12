@@ -7,7 +7,7 @@ Definition wp_nval `{!irisGS Λ Σ, !crashGS Σ} E1 P :=
   ((∀ mj q g1 D κs,
        global_state_interp g1 mj D κs -∗ NC q -∗ ||={E1|⊤∖D, ∅|∅}=> ∃ D', ||={∅|∅, E1|⊤∖D'}=>
        ∃ mj', ⌜mj' = mj ∨ (/2 < mj' ≤ mj)%Qp⌝ ∗ global_state_interp g1 mj' D' κs ∗ NC q ∗
-        |~{E1|⊤∖D'}~>
+        |~{E1, E1}~>
           ∀ g1' κs', global_state_interp g1' mj' D' κs' -∗ NC q -∗ ||={E1|⊤∖D', E1|⊤∖D}=>
             global_state_interp g1' mj D κs' ∗ P ∗ NC q))%I.
 
@@ -23,7 +23,7 @@ Proof.
   rewrite /wp_nval. iIntros (?????) "H HNC".
   iMod ("Hwp_nval" with "[$] [$]") as (?) "H".
   iModIntro. iExists _. iMod "H" as (?) "($&$&$&Hstep)".
-  iModIntro. iApply (logical_step_wand with "[$]").
+  iModIntro. iApply (step_update_wand with "[$]").
   iIntros "Hstep" (??) "Hg HNC".
   iMod ("Hstep" with "[$] [$]") as "($&HP&HNC)".
   rewrite ncfupd_eq /ncfupd_def. by iMod ("Hwand" with "[$] [$]") as "$".
@@ -36,7 +36,7 @@ Proof.
   iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo"; [set_solver..|].
   iFrame "H". iModIntro. iMod "Hclo". iModIntro.
   iSplitR; first (iPureIntro; by left).
-  iApply logical_step_intro.
+  iApply step_update_intro; first set_solver.
   iIntros (??) "$ $". by iFrame.
 Qed.
 
@@ -89,20 +89,21 @@ Proof using later_tokG0 pri_invG0.
   iIntros (q σ1 g1 D κ κs nt) "Hσ Hg HNC".
   iSplit. { iDestruct ("Hwp" $! mj) as "(Hwp&_)". iDestruct ("Hwp" with "[$] [$] [$]") as "[$ _]". }
   iIntros.
-  iApply (physical_step_atomic E (⊤ ∖ D)).
+  iApply (physical_step2_atomic2 E (⊤ ∖ D)).
   iMod (fupd_mask_subseteq E) as "Hclo"; [done..|].
   iApply (lc_fupd2_add_laterN with "[$]"). iNext. iNext. iModIntro.
   iMod ("Hval" with "[$] [$]") as (?) ">Hstep".
   iDestruct "Hstep" as (?) "(%Heq&Hg&HNC&Hstep)".
   iDestruct ("Hwp" $! mj') as "(Hwp&_)".
   iDestruct ("Hwp" with "[$] [$] [$] [//]") as "H".
-  iMod "Hstep" as "_".
-  iApply (physical_step_atomic E' (⊤∖D')). iMod "Hclo" as "_".
-  iModIntro. iMod "Hcl" as "_".
-  iApply (physical_step_wand with "H").
-  iIntros "(Hσ & Hg & Hwpc & Hfork & HNC) [[Htok _] _]".
+  iApply (physical_step2_step_update with "[$]").
+  iApply (physical_step2_step_update with "[Hcl]").
+  { iMod "Hcl" as "_". iModIntro. iIntros "/= [H _]". iExact "H". }
+  iApply (physical_step2_atomic2 E' (⊤ ∖ D')). iMod "Hclo" as "_".
+  iModIntro. iApply (physical_step2_wand_later with "H"); [done..|].
+  iIntros "!> (Hσ & Hg & Hwpc & Hfork & HNC)".
   iMod (fupd_mask_subseteq E) as "Hclo"; [done..|].
-  iModIntro. iIntros "Hnval".
+  iModIntro. iIntros "Htok Hnval".
   iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo'"; [set_solver..|].
   iModIntro. iMod "Hclo'" as "_".
   iMod ("Hnval" with "[$] [$]") as "(Hg&HP&HNC)". iModIntro.

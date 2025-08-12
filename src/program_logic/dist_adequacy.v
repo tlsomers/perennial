@@ -66,8 +66,8 @@ Proof.
   iPoseProof (crash_adequacy.wptp_step with "[$Hσ] [Hg] [Hwpr] [Hwptp] [HNC]") as "H"; eauto.
   { rewrite wpr0_unfold/wpr0_pre. eauto. }
   iDestruct "H" as (e2 t2' ->) "H".
-  iApply (physical_step_wand with "H"). iIntros "(Hσ&Hg&Hwpr&Hwptp&HNC)".
-  iFrame.
+  iApply (physical_step2_wand_later with "H"); [done..|].
+  iIntros "!> (Hσ&Hg&Hwpr&Hwptp&HNC)". iFrame.
   simpl. iExists Φ, Φinv, Φr.
   rewrite wpr0_unfold/wpr0_pre. iFrame.
 Qed.
@@ -86,18 +86,17 @@ Proof.
   iDestruct "Hwptp" as (Φ Φinv Φr) "(Hwpr&Hwptp)".
   iMod (NC_upd_C with "HNC") as "#HC".
   rewrite wpr0_unfold/wpr0_pre.
-  iApply physical_step_fupd_l.
-  iMod (@fupd2_mask_subseteq _ _ ⊤ ⊤ ⊤ (⊤ ∖ D)) as "Hclo"; try set_solver+.
+  iApply (physical_step2_atomic2 ⊤ (⊤ ∖ D)).
+  iMod (fupd2_mask_subseteq ⊤ (⊤ ∖ D)) as "Hclo"; try set_solver+.
   iMod (wpc0_crash with "Hwpr [Hg] []") as "H".
   { eauto. }
   { iFrame "#". }
   iDestruct "H" as "(Hg&H)".
   iDestruct ("H" with "[//] [$] [Hg]") as "H".
   { eauto. }
-  iMod "Hclo". iModIntro.
-  iApply (physical_step_subseteq ⊤ D); eauto.
-  iApply (physical_step_wand with "H").
-  iDestruct 1 as (HG') "(HNC&Hσ&Hg&(_&Hwpr))".
+  iModIntro.
+  iApply (physical_step2_wand_later with "H"); [done..|].
+  iModIntro. iDestruct 1 as (HG') "(HNC&Hσ&Hg&(_&Hwpr))".
   iClear "HC".
   iExists HG'.
   iFrame. rewrite /wptp. rewrite big_sepL_nil. eauto.
@@ -118,16 +117,16 @@ Proof.
     iDestruct (big_sepL_insert_acc with "Hnodes") as "(Hdn&Hnodes)"; first eassumption.
     iDestruct "Hdn" as (ct) "Hdn".
     iDestruct (stwpnode_step with "[$] [$]") as "H"; first eassumption.
-    iApply (physical_step_wand with "H").
-    iIntros "($&Hnode)".
+    iApply (physical_step2_wand_later with "H"); [done..|].
+    iIntros "!> ($&Hnode)".
     simpl in Hlookup2. rewrite Hlookup2.
     iApply "Hnodes". iExists _. eauto.
   - subst. rewrite /stwpnodes.
     iDestruct (big_sepL_insert_acc with "Hnodes") as "(Hdn&Hnodes)"; first eassumption.
     iDestruct "Hdn" as (ct) "Hdn".
     iDestruct (stwpnode_crash with "[$] [$]") as "H"; first eassumption.
-    iApply (physical_step_wand with "H").
-    iDestruct 1 as (ct') "(Hg&Hnode)".
+    iApply (physical_step2_wand_later with "H"); [done..|].
+    iModIntro. iDestruct 1 as (ct') "(Hg&Hnode)".
     simpl in Heq2. rewrite Heq2. iFrame.
     simpl in Heq1. rewrite Heq1.
     iApply "Hnodes". iExists _. eauto.
@@ -137,19 +136,21 @@ Lemma stwpnodes_steps n dns1 g1 D dns2 g2 κs κs' :
   dist_nsteps (CS := CS) n (dns1, g1) κs (dns2, g2) →
   global_state_interp g1 mj D (κs ++ κs') -∗
   stwpnodes dns1 -∗
-  |={⊤|⊤}⧗=>^n ||={⊤|⊤, ⊤|⊤}=>
+  ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^n ||={⊤|∅, ⊤|⊤}=>
   global_state_interp g2 mj D κs' ∗
   stwpnodes dns2.
 Proof.
   revert dns1 dns2 κs κs' g1 g2.
   induction n as [|n IH]=> dns1 dns2 κs κs' g1 g2.
-  { inversion_clear 1. simpl. iIntros "$ $ //". }
+  { inversion_clear 1. simpl. iIntros "$ $".
+    iApply fupd2_mask_subseteq; set_solver. }
   simpl.
   iIntros (Hsteps) "Hσ He". inversion_clear Hsteps as [|?? [t1' σ1']].
   rewrite -(assoc_L (++)).
   iDestruct (stwpnodes_step with "Hσ He") as "H"; first eauto; simplify_eq.
-  iApply (physical_step_wand with "H").
-  iIntros "(Hσ & He)".
+  iApply physical_stepN_physical_step2. 
+  iApply (physical_step2_wand_later with "H"); [done..|].
+  iIntros "!> (Hσ & He)".
   iDestruct (IH with "Hσ He") as "IH"; done.
 Qed.
 
@@ -157,7 +158,7 @@ Lemma stwpnodes_strong_adequacy n dns1 g1 D dns2 g2 κs κs' :
   dist_nsteps (CS := CS) n (dns1, g1) κs (dns2, g2) →
   global_state_interp g1 mj D (κs ++ κs') -∗
   (|={⊤}=> stwpnodes dns1) -∗
-  ||={⊤|⊤, ⊤|⊤}=> |={⊤|⊤}⧗=>^n ||={⊤|⊤, ⊤|⊤}=>
+  ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^n ||={⊤|∅, ⊤|⊤}=>
   global_state_interp g2 mj D κs' ∗
   stwpnodes dns2.
 Proof.
@@ -170,11 +171,11 @@ Lemma stwpnodes_progress n dns1 g1 D dns2 g2 κs κs' dn e :
   dn ∈ dns2 → e ∈ tpool dn →
   global_state_interp g1 mj D (κs ++ κs') -∗
   (|={⊤}=> stwpnodes dns1) -∗
-  (||={⊤|⊤, ⊤|⊤}=> |={⊤|⊤}⧗=>^n ||={⊤|⊤, ∅|∅}=>
+  (||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^n ||={⊤|∅, ∅|∅}=>
       ⌜ not_stuck e (local_state dn) g2 ⌝).
 Proof.
   iIntros (Hstep Hin1 Hin2) "Hg >Ht".
-  iDestruct (stwpnodes_steps with "Hg Ht") as "Hgt"; first done.
+  iDestruct (stwpnodes_steps with "Hg Ht") as ">Hgt"; first done.
   iModIntro. iApply (physical_stepN_wand with "Hgt").
   iMod 1 as "(Hg & Ht)".
   rewrite /stwpnodes.

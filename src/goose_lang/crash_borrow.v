@@ -104,13 +104,12 @@ Definition pre_borrowN n : iProp Σ :=
 
 Notation pre_borrow := (pre_borrowN 1).
 
-Lemma physical_step_use_pre_borrowN n E D :
-  pre_borrowN n -∗ |~{E|D}~> pre_borrowN n ∗ pre_borrowN n.
+Lemma physical_step_use_pre_borrowN n :
+  pre_borrowN n -∗ |~~> pre_borrowN n ∗ pre_borrowN n.
 Proof.
   iIntros "Hbor".
   iDestruct (later_tokN_use with "[$]") as "[_ Hcl]".
-  iMod "Hcl" as "_".
-  iApply (logical_step_intro).
+  iMod "Hcl" as "_". iModIntro.
   replace (n * 4 * 10) with (2 * (n * 4) + 8 * n * 4) by lia.
   iIntros "[[Ha Hb] _]". rewrite Nat.add_0_r. iFrame.
 Qed.
@@ -217,14 +216,16 @@ Proof.
   iLeft in "Hwpc". rewrite Hnv.
   iSplit.
   { iDestruct ("Hwpc" with "[$] [$] [$]") as "[$ _]". }
-  iIntros. iApply physical_step_fupd_l. iMod "H⧗". iModIntro.
+  iIntros. iApply physical_step2_atomic. iMod "H⧗". iModIntro.
   iDestruct ("Hwpc" with "[$] [$] [$]") as "[_ Hwpc]".
   iDestruct ("Hwpc" with "[//]") as "Hwpc".
-  iDestruct (later_tokN_use with "[$]") as "[_ >_]".
-  iApply (physical_step_wand with "[$]").
+  iDestruct (later_tokN_use with "[$]") as "[_ Hcl]".
+  iApply (physical_step2_step_update with "[Hcl]").
+  { iMod "Hcl" as "_". iModIntro. iIntros "H". iExact "H". }
+  iApply (physical_step2_wand_later with "[$]"); [done..|].
   replace (1*10) with (4 + (crash_borrow_ginv_number + 1)); last first.
   { rewrite /crash_borrow_ginv_number //. }
-  iIntros "($&$&Hwpc&$&$) (Hpre&Hcrash&_)".
+  iIntros "!> ($&$&Hwpc&$&$) (Hpre&Hcrash&_) !>".
   iMod ("Hclo" with "[$]") as "_".
   iModIntro.
   iApply (wpc0_strong_mono with "Hwpc"); auto.
@@ -324,29 +325,31 @@ Proof.
   iDestruct ("Hwpc" with "Hσ [$] [$]") as "Hwpc".
   iModIntro. iSplit; [by iLeft in "Hwpc"|iRight in "Hwpc"].
   iIntros (e2????Hstep).
-  iDestruct (later_tokN_use with "Htok2") as "[_ >_]".
-  iApply (physical_step_wand with "(Hwpc [//])").
-  iIntros "(Hσ&Hg&Hwp&$) /= Htoks".
+  iDestruct (later_tokN_use with "Htok2") as "[_ Hcl]".
+  iApply (physical_step2_step_update with "[Hcl]").
+  { iMod "Hcl". iIntros "!> /= Htoks". iExact "Htoks". }
+  iApply (physical_step2_wand_later with "(Hwpc [//])"); [done..|].
+  iIntros "!> ($&Hg&Hwp&Hefs&HNC) Htoks".
 
   iMod ("Hclo" with "[Htoks]") as "_".
   { rewrite /crash_borrow_ginv_number. replace 10 with (5 + 5) by lia.
     iDestruct "Htoks" as "[$ _]". }
   iModIntro. iFrame.
   iApply (wpc0_staged_inv_cancel with "[$]").
-  { destruct (to_val e2); eauto. }
+  { destruct (language.to_val e2); eauto. }
   { auto. }
   iApply (wpc0_strong_mono with "Hwp"); auto.
-  { destruct (to_val e2); eauto. }
+  { destruct (language.to_val e2); eauto. }
   iSplit; last first.
   { iIntros "H !>"; eauto. }
   iIntros (v) "Hwpc". iModIntro. iIntros "Hcancel".
 
   iApply (wpc0_staged_inv_cancel with "[$]").
-  { destruct (to_val (K _)); eauto. }
+  { destruct (language.to_val (K _)); eauto. }
   { auto. }
 
   iApply (wpc0_strong_mono with "Hwpc"); auto.
-  { destruct (to_val (K _)); auto. }
+  { destruct (language.to_val (K _)); auto. }
 Qed.
 
 Lemma wpc_crash_borrow_init_ctx' s e Φ Φc P Pc K `{!LanguageCtx K} :

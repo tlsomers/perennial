@@ -314,8 +314,8 @@ Proof.
     iDestruct "H" as "(H&_)".
     iDestruct ("H" with "[$] [$] [$]") as "H".
     iSplit; [by iLeft in "H" | iRight in "H"].
-    iIntros. iApply (physical_step_wand with "(H [//])").
-    iDestruct 1 as "($&$&H&$)".
+    iIntros. iApply (physical_step2_wand_later with "(H [//])"); [done..|].
+    iIntros "!> ($&$&H&$)".
     match goal with | H : Atomic _ _ |- _ => rename H into Atomic0 end.
     rewrite /Atomic/= in Atomic0.
     edestruct (Atomic0) as (v&Hval); eauto.
@@ -367,8 +367,8 @@ Proof using later_tokG0.
     iDestruct "H" as "(H&_)".
     iDestruct ("H" with "[$] [$] [$]") as "H".
     iSplit; [by iLeft in "H"|iRight in "H"].
-    iIntros. iApply (physical_step_wand_later with "(H [//])").
-    iNext. iDestruct 1 as "($&$&H&$)".
+    iIntros. iApply (physical_step2_wand_later with "(H [//])"); [done..|].
+    iIntros "!> ($&$&H&$)".
     by iApply "IH".
 Qed.
 

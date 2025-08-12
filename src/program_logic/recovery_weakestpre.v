@@ -31,7 +31,7 @@ Definition wpr_pre `{irisGS Λ Σ} (CS: crash_semantics Λ) (s : stuckness)
   (WPC e @ s ; E
      {{ Φ }}
      {{ ∀ σ g mj D σ' (HC: crash_prim_step CS σ σ') κs n,
-        state_interp σ n -∗ global_state_interp g mj D κs -∗ |={E|D}⧗=>
+        state_interp σ n -∗ global_state_interp g mj D κs -∗ |={E|⊤∖D}⧗=>
           ∃ (HGnew:generationGS Λ Σ), NC 1 ∗
             state_interp (G:=HGnew) σ' 0 ∗
             global_state_interp g mj D κs ∗
@@ -40,7 +40,7 @@ Definition wpr_pre `{irisGS Λ Σ} (CS: crash_semantics Λ) (s : stuckness)
 Local Instance wpr_pre_contractive `{!irisGS Λ Σ} CS s: Contractive (wpr_pre CS s).
 Proof.
   rewrite /wpr_pre=> n wp wp' Hwp Hgen E1 e1 rec Φ Φinv Φc.
-  apply wpc_ne; eauto;
+  apply wpc_ne; eauto; try rewrite !crash_weakestpre.physical_step2_eq /physical_step2_def;
   repeat (f_contractive || f_equiv). apply Hwp.
 Qed.
 
@@ -84,7 +84,7 @@ Proof.
   iDestruct "HΦ" as "(_&HΦ)".
   iIntros "H".
   iModIntro. iIntros (????????) "Hσ Hg".
-  iApply (physical_step_wand_later with "(H [//] Hσ Hg)").
+  iApply (physical_step2_wand_later with "(H [//] Hσ Hg)"); [done..|].
   iNext.
   iDestruct 1 as (HG') "(HNC&?&?&H)".
   iExists HG'. iFrame.
@@ -101,7 +101,7 @@ Qed.
 Lemma idempotence_wpr CS s E1 e rec Φx Φinv Φrx (Φcx: generationGS Λ Σ → iProp Σ) HG :
   ⊢ WPC e @ s ; E1 {{ Φx }} {{ Φcx HG }} -∗
    (□ ∀ (HG': generationGS Λ Σ) σ g σ' (HC: crash_prim_step CS σ σ') mj D κs n,
-        Φcx HG' -∗ state_interp (G:=HG') σ n -∗ global_state_interp g mj D κs -∗ |={E1|D}⧗=>
+        Φcx HG' -∗ state_interp (G:=HG') σ n -∗ global_state_interp g mj D κs -∗ |={E1|⊤∖D}⧗=>
           ∃ (HG'': generationGS Λ Σ), NC 1 ∗
             state_interp (G:=HG'') σ' 0 ∗ global_state_interp g mj D κs ∗
             (Φinv HG'' ∧ WPC rec @ s ; E1 {{ Φrx HG'' }} {{ Φcx HG'' }})) -∗
@@ -116,7 +116,7 @@ Proof.
   { set_solver +. }
   iIntros. iDestruct ("Hidemp" with "[ ] [$] [$] [$]") as "H".
   { eauto. }
-  iApply (physical_step_wand_later with "H").
+  iApply (physical_step2_wand_later with "H"); [done..|].
   iNext.
   iDestruct 1 as (HG'') "(HNC&?&?&Hc)".
   iExists HG''. iFrame.
@@ -144,7 +144,7 @@ Definition wpr0_pre `{irisGS Λ Σ} (CS: crash_semantics Λ) (s : stuckness) (mj
   (wpc0 s mj E e
      Φ
      (∀ σ g σ' (HC: crash_prim_step CS σ σ') mj D κs n,
-        state_interp σ n -∗ global_state_interp g mj D κs -∗ |={E|D}⧗=>
+        state_interp σ n -∗ global_state_interp g mj D κs -∗ |={E|⊤∖D}⧗=>
           ∃ (HGnew:generationGS Λ Σ), NC 1 ∗
             state_interp (G:=HGnew) σ' 0 ∗
             global_state_interp g mj D κs ∗
@@ -153,7 +153,7 @@ Definition wpr0_pre `{irisGS Λ Σ} (CS: crash_semantics Λ) (s : stuckness) (mj
 Local Instance wpr0_pre_contractive `{!irisGS Λ Σ} CS s mj: Contractive (wpr0_pre CS s mj).
 Proof.
   rewrite /wpr_pre=> n wp wp' Hwp HG E1 e1 rec Φ Φinv Φc.
-  apply wpc0_ne; eauto;
+  apply wpc0_ne; eauto; try rewrite !crash_weakestpre.physical_step2_eq /physical_step2_def;
   repeat (f_contractive || f_equiv || simpl). apply Hwp.
 Qed.
 
@@ -194,7 +194,7 @@ Proof.
   iSplit; first eauto.
   iIntros "H !>". iIntros (σ g σ' Hcrash mj' D κs n) "Hσ Hg".
   iDestruct ("H" with "[//] [$] [$]") as "H".
-  iApply (physical_step_wand_later with "H").
+  iApply (physical_step2_wand_later with "H"); [done..|].
   iNext.
   iDestruct 1 as (HG') "(HNC&Hσ&Hg&H)".
   iExists _. iFrame. iSplit.

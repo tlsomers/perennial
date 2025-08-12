@@ -82,30 +82,29 @@ Implicit Types e : expr Λ.
 
 Lemma later_tokN_use n :
   later_tokN n -∗
-  £ (n*2) ∗ |~{∅|∅}~> later_tokN (n*10).
+  £ (n*2) ∗ |~~> later_tokN (n*10).
 Proof using LT.
   rewrite later_tokN_unseal /later_tokN_def.
-  rewrite physical_step.logical_step_unseal.
-  iIntros "[H⧗ $]" (P) "Hstep".
-  iApply (physical_step_tr_use with "[$]").
-  iApply (physical_step_wand with "[$]").
-  iIntros "$ H⧗ H£".
+  iIntros "[H⧗ $]".
+  iMod (step_update_tr_use with "H⧗") as "_".
+  iIntros "!> [H⧗ H£]".
   assert (n * 10 * 2 ≤ f (n*2)) as Hle.
   { etrans; [|apply f_exp]; lia. }
   iDestruct (tr_weaken with "[$]") as "$"; first done.
   iDestruct (lc_weaken with "[$]") as "$"; done.
 Qed.
 
-Definition later_tokN_pure_step D E P:
-  (later_tokN 2 -∗ ||={E|D, E|D}=> P) -∗
-  |={E|D}⧗=> P.
+Definition later_tokN_pure_step E P:
+  (later_tokN 2 -∗ |={E}=> P) -∗
+  |={E}⧗=> P.
 Proof using LT.
   iIntros "HP".
   iApply (physical_step_step); iSplit.
-  { iMod tr_persistent_zero as "$". iMod (fupd2_mask_subseteq ∅ ∅) as "_"; set_solver. }
+  { iMod tr_persistent_zero as "$". iMod (fupd_mask_subseteq ∅) as "_"; set_solver. }
   iIntros "Hlc Htr".
-  iMod (fupd2_mask_subseteq ∅ ∅) as "Hclose"; [set_solver..|].
-  iModIntro. iApply step_fupd2N_intro. iNext. iNext. iMod "Hclose".
+  iMod (fupd_mask_subseteq ∅) as "Hclose"; [set_solver..|].
+  iModIntro. iApply step_fupdN_intro; [done|].
+  iNext. iNext. iMod "Hclose".
   rewrite later_tokN_unseal /later_tokN_def.
   iApply "HP".
   iDestruct (lc_weaken with "Hlc") as "$".
@@ -123,11 +122,10 @@ Proof using H IRISG LT Λ Σ.
   iIntros (Hnval) "Htok Hwp".
   iDestruct (later_tokN_use with "Htok") as "[H£ Htok]".
   iDestruct ("Hwp" with "[$]") as "Hwp".
-  iApply (wpc_use_step_strong _ _ _ _ _ _ (later_tok) True%I with "[Htok]"); [by rewrite Hnval|done| |].
-  - iSplit; [|done].
-    iIntros (P D) "HP".
-    iMod "Htok" as "_". iApply (physical_step_wand with "HP").
-    iIntros "$ /= [$ _]".
+  iApply (wpc_step_update_strong _ _ _ _ _ _ (later_tok) with "[Htok]"); [by rewrite Hnval|done| |].
+  - iDestruct (step_update_frame _ _ E with "[$]") as "H"; [set_solver..|].
+    rewrite left_id_L. iApply (step_update_wand with "[$]").
+    iIntros "/= [$ _]".
   - iApply (wpc_mono with "[$]").
     + iIntros (v) "H tok". by iApply "H".
     + iIntros "$ ? //".
@@ -165,11 +163,10 @@ Lemma wpc_later_tok_invest s E e Φ Φc :
   WPC e @ s; E {{ Φ }} {{ Φc }}.
 Proof using H IRISG LT Λ Σ.
   iIntros (Hnval) "[Htok Hlc] Hwp".
-  iApply (wpc_use_step_strong _ _ _ _ _ _ (later_tokN 10)%I True%I with "[Htok]"); [by rewrite Hnval|done| |].
-  - iSplit; [|done].
-    iIntros (P D) "HP".
-    iDestruct (later_tokN_use 1 with "Htok") as "[_ Huse]". iMod "Huse" as "_".
-    iApply (physical_step_wand with "HP"). iIntros "$ $".
+  iApply (wpc_step_update_strong _ _ _ _ _ _ (later_tokN 10)%I with "[Htok]"); [by rewrite Hnval|done| |].
+  - iDestruct (later_tokN_use with "[$]") as "[_ ?]".
+    iDestruct (step_update_frame _ _ E with "[$]") as "H"; [set_solver..|].
+    rewrite left_id_L //.
   - iApply (wpc_mono with "[$]").
     + iIntros (v) "H tok". by iApply "H".
     + iIntros "$ ? //".
@@ -187,7 +184,7 @@ Proof using H IRISG LT Λ Σ.
   inversion Hrest; subst.
   assert (∀ σ1 g1, reducible e1 σ1 g1).
   { intros. apply reducible_no_obs_reducible. eauto. }
-  iApply wpc_lift_step_physical.
+  iApply wpc_lift_step_pstep.
   { eapply (reducible_not_val _ inhabitant inhabitant); eauto. }
   iSplit; [iRight in "H"|iLeft in "H"; by iFrame].
   iIntros. iSplit.

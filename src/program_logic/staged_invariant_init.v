@@ -129,7 +129,7 @@ Proof using PRI later_tokG0.
   iSplit; [by iLeft in "Hwp"|iRight in "Hwp"].
   iIntros.
   iDestruct ("Hwp" with "[//]") as "Hwp".
-  iApply (physical_step_wand_later with "Hwp").
+  iApply (physical_step2_wand_later with "Hwp"); [done..|].
   iIntros "!> ($&$&Hwpc&$&$)".
   iApply ("IH" with "[] [$] [$] [$]").
   iPureIntro. destruct (to_val); set_solver.
@@ -355,7 +355,7 @@ Proof using later_tokG0.
   iDestruct ("Hwp" with "[$] [$] [$]") as "Hwp".
   iSplit; [by iLeft in "Hwp"|iRight in "Hwp"].
   iIntros.
-  iApply (physical_step_wand_later with "(Hwp [//])").
+  iApply (physical_step2_wand_later with "(Hwp [//])"); [done..|].
   iIntros "!> ($&$&Hwpc&$&$)".
   iApply ("IH" with "[] [$] [$] [$] [$]").
   { iPureIntro. destruct (to_val); set_solver. }
