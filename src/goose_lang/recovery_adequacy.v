@@ -33,8 +33,7 @@ Proof.
   iMod (ffi_local_init _ _ σ.(world)) as (ffi_names) "(Hw&Hstart)"; first by eauto.
   iMod (trace_name_init σ.(trace) σ.(oracle)) as (name_trace) "(Htr&Htrfrag&Hor&Hofrag)".
   iMod (globals_name_init _ σ.(globals)) as (globals_name) "(Hg & Hgfrag)".
-  iMod (credit_name_init (n*4 + crash_borrow_ginv_number)) as (name_credit) "(Hcred_auth&Hcred&Htok)".
-  iDestruct (cred_frag_split with "Hcred") as "(Hpre&Hcred)".
+  iMod (credit_name_init) as (name_credit) "Htok".
   iMod (proph_map_init κs g.(used_proph_id)) as (proph_names) "Hproph".
 
   iAssert (|={⊤}=> crash_borrow_ginv)%I with "[Htoks1]" as ">#Hinv".
@@ -46,7 +45,6 @@ Proof.
   destruct (Hwp (HeapGS _ hG hL)) as [Φinv Hwp']. clear Hwp.
   iExists state_interp, global_state_interp, fork_post.
   iExists ((λ Hinv hGen, ∃ hL:gooseLocalGS Σ, ⌜hGen = goose_generationGS (L:=hL)⌝ ∗ Φinv (HeapGS _ _ hL)))%I.
-
   iMod (Hwp' with "[$] [$] [$] [$] [$] [$]") as "(#H1&#H2&Hwp)".
   iModIntro.
   iSplitR.

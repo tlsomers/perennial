@@ -329,13 +329,7 @@ Notation "'{{{' P } } } e ? {{{ 'RET' pat ; Q } } }" :=
      format "'[hv' {{{  P  } } }  '/  ' e  '/' ? {{{  RET  pat ;  Q  } } } ']'") : bi_scope.
 *)
 
-(** Aliases for stdpp scope -- they inherit the levels andGlobal Instance elim_modal_fupd_wpc p s E1 e P Φ Φc :
-    ElimModal True p false (|={E1}=> P) P (WPC e @ s; E1 {{ Φ }} {{ Φc }})
-              (WPC e @ s; E1 {{ Φ }} {{ Φc }}).
-  Proof.
-    by rewrite /ElimModal intuitionistically_if_elim
-      fupd_frame_r wand_elim_r fupd_wpc.
-  Qed. format from above. *)
+(** Aliases for stdpp scope -- they inherit the levels and format from above. *)
 Notation "'{{{' P } } } e @ s ; E1 {{{ x .. y , 'RET' pat ; Q } } } {{{ Qc } } }" :=
   (∀ Φ Φc, P -∗ (Qc -∗ Φc) ∧ ▷ (∀ x, .. (∀ y, Q -∗ Φ pat%V) .. ) -∗ WPC e @ s; E1 {{ Φ }} {{ Φc }}) : stdpp_scope.
 Notation "'{{{' P } } } e @ E1 {{{ x .. y , 'RET' pat ; Q } } } {{{ Qc } } }" :=

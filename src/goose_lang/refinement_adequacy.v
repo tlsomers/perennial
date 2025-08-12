@@ -557,12 +557,6 @@ Proof using Hrpre Hhpre Hcpre.
     { eapply trace_equiv_preserve_crash; eauto. }
     { eapply oracle_equiv_preserve_crash; eauto. }
     iDestruct "Hg" as "(Hb_ginv&$&%&Hp)".
-    (* iMod (cred_interp_incr_k _ (9 * ns + 10) with "Hc") as "(Hc&Hfrag)".
-    assert (∃ n0 : nat, 9 * ns + 10 = n * 4 + n0)%nat as (n0'&Heqn0').
-    { exists (9 * ns + 10 - 4 * n)%nat. lia. }
-    iEval (rewrite Heqn0') in "Hfrag".
-    iDestruct (cred_frag_split with "Hfrag") as "(Hfrag&_)".
-    iDestruct (cred_frag_to_pre_borrowN with "Hfrag") as "Hpre". *)
     iModIntro.
     rewrite /state_interp//=.
     iFrame.

@@ -28,7 +28,6 @@ Local Notation "'WPC' e @ s ;  E1 {{ Φ } } {{ Φc } }" := (wpc0 s mj E1 e%E Φ 
 
 Notation wptp s t := ([∗ list] ef ∈ t, WPC ef @ s; ⊤ {{ fork_post }} {{ True }})%I.
 
-(* TODO: Adequacy for later :) *)
 Lemma wpc_step s e1 σ1 g1 D κ κs e2 σ2 g2 efs m Φ Φc :
   prim_step e1 σ1 g1 κ e2 σ2 g2 efs →
   state_interp σ1 m -∗
@@ -44,7 +43,6 @@ Proof.
   rewrite {1}wpc0_unfold /wpc_pre. iIntros (?) "Hσ Hg H HNC".
   rewrite (val_stuck e1 σ1 g1 κ e2 σ2 g2 efs) //.
   iDestruct "H" as "(H&_)".
-  (* iMod (fupd2_mask_subseteq ⊤ (⊤ ∖ D)) as "Hclo"; try set_solver+. *)
   iDestruct ("H" $! _ σ1 with "Hσ Hg HNC [//]") as "H".
   iApply (physical_step2_atomic2 ⊤ (⊤∖D)).
   iMod (fupd2_mask_subseteq ⊤ (⊤∖D)) as "Hclo"; try set_solver+.
