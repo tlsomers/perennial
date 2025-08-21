@@ -170,7 +170,7 @@ Proof.
   iDestruct (wptp_steps with "Hσ Hg He Ht HNC") as "Hwp"; first done.
   iApply (physical_stepN_wand with "Hwp").
   iMod 1 as (e2' t2' ?) "(Hσ & Hg & Hwp & Ht & HNC)"; simplify_eq/=.
-  apply elem_of_cons in Hel as [<-|(t1''&t2''&->)%list_elem_of_split].
+  apply elem_of_cons in Hel as [<-|(t1''&t2''&->)%elem_of_list_split].
   - iPoseProof (wpc_safe with "Hσ Hg Hwp HNC") as "H".
     iMod "H". eauto.
   - iDestruct "Ht" as "(_ & He' & _)".
