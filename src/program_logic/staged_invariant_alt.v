@@ -2,7 +2,7 @@ From iris.algebra Require Import gmap auth agree gset coPset excl csum.
 From Perennial.base_logic.lib Require Export fancy_updates.
 From stdpp Require Export namespaces.
 From Perennial.base_logic.lib Require Import wsat invariants ae_invariants saved_prop.
-From Perennial.Helpers Require Import Qextra.
+From Perennial.Helpers Require Import Qextra ipm.
 From iris.algebra Require Import gmap.
 From iris.proofmode Require Import tactics.
 From Perennial.program_logic Require Export step_fupd_extra crash_weakestpre ae_invariants_mutable later_res private_invariants.
@@ -44,17 +44,16 @@ Definition staged_done `{stagedG Σ} (γ: gname) : iProp Σ :=
 
 (* This is the modality guarding the crash condition in a wpc *)
 Definition wpc_crash_modality `{!irisGS Λ Σ, !crashGS Σ} E1 mj Φc :=
-  ((∀ g1 ns D κs,
+  ((∀ g1 D κs,
        let E2 :=  ⊤ ∖ D in
-       global_state_interp g1 ns mj D κs -∗ C -∗
-          £ (num_laters_per_step ns) -∗
-     ||={E1|E2,∅|∅}=> ||▷=>^(num_laters_per_step ns) ||={∅|∅,E1|E2}=> global_state_interp g1 ns mj D κs ∗ Φc))%I.
+       global_state_interp g1 mj D κs -∗ C -∗
+     ||={E1|E2,E1|E2}=> global_state_interp g1 mj D κs ∗ Φc))%I.
 
 Definition wpc_value_modality `{!irisGS Λ Σ, !crashGS Σ} E1 mj Φc :=
-  ((∀ q g1 ns D κs,
+  ((∀ q g1 D κs,
        let E2 :=  ⊤ ∖ D in
-       global_state_interp g1 ns mj D κs -∗ NC q -∗
-     ||={E1|E2,E1|E2}=> global_state_interp g1 ns mj D κs ∗ Φc ∗ NC q))%I.
+       global_state_interp g1 mj D κs -∗ NC q -∗
+     ||={E1|E2,E1|E2}=> global_state_interp g1 mj D κs ∗ Φc ∗ NC q))%I.
 
 Section def.
 Context `{IRISG: !irisGS Λ Σ, !crashGS Σ}.
@@ -260,7 +259,15 @@ Lemma wpc_crash_modality_intro_C E mj P :
   wpc_crash_modality E mj P.
 Proof.
   iIntros "H". rewrite /wpc_crash_modality.
-  iIntros. iApply ("H" with "[$] [$] [$] [$]").
+  iIntros. iApply ("H" with "[$] [$] [$]").
+Qed.
+
+Lemma wpc_crash_modality_fupd E mj P :
+  (|={E}=> wpc_crash_modality E mj P) -∗
+  wpc_crash_modality E mj P.
+Proof.
+  iIntros "H". rewrite /wpc_crash_modality.
+  iIntros. iMod "H". iApply ("H" with "[$] [$]").
 Qed.
 
 Lemma wpc_crash_modality_strong_wand E1 E2 mj1 mj2 P Q :
@@ -272,13 +279,12 @@ Lemma wpc_crash_modality_strong_wand E1 E2 mj1 mj2 P Q :
 Proof using PRI.
   iIntros (??) "Hwpc Hwand".
   rewrite /wpc_crash_modality.
-  iIntros (g1 ns D κs) "Hg #C Hlc".
-  iApply (step_fupd2N_inner_fupd2).
+  iIntros (g1 D κs) "Hg #C".
   iDestruct (pri_inv_tok_global_le_acc with "[//] Hg") as "(Hg&Hg_clo)".
-  iSpecialize ("Hwpc" with "[$] [$] [$]").
-  iApply (step_fupd2N_inner_wand with "Hwpc"); auto.
-  iIntros "(Hg&HP)". iDestruct ("Hg_clo" with "[$Hg]") as "$".
-  by iMod ("Hwand" with "[$]") as "$".
+  iMod (fupd_mask_subseteq E1) as "Hcl"; [set_solver|].
+  iMod ("Hwpc" with "[$] [$]") as "[Hg Hp]".
+  iDestruct ("Hg_clo" with "Hg") as "$".
+  iMod "Hcl". iApply fupd_fupd2. by iApply "Hwand".
 Qed.
 
 Lemma wpc0_modality_postcondition_cancel_atomic s mj E e Φ Φc `{!Atomic StronglyAtomic e}:
@@ -290,13 +296,12 @@ Proof.
   iSplit; last first.
   { iDestruct "H" as "(_&H)". eauto. }
   destruct (to_val e).
-  - iIntros (q g1 ns D κs) "Hg HNC".
+  - iIntros (q g1 D κs) "Hg HNC".
     iFrame. iModIntro.
     iSplit.
     { iDestruct "H" as "(_&H)".
-      iIntros (????) "Hg HC Hlc".
-      iSpecialize ("H" with "[$] [$] [$]").
-      iApply (step_fupd2N_inner_wand with "H"); auto.
+      iIntros (???) "Hg HC".
+      iSpecialize ("H" with "[$] [$]"). done.
     }
     { iDestruct "H" as "(H&_)".
       rewrite /wpc_value_modality. iIntros.
@@ -307,13 +312,10 @@ Proof.
       iMod "H" as "($&$&$)". iMod "Hclo"; eauto. }
   - iIntros.
     iDestruct "H" as "(H&_)".
-    iMod ("H" with "[$] [$] [$] [$]") as "H". iModIntro.
-    simpl. iMod "H". iModIntro. iNext. iMod "H". iModIntro.
-    iApply (step_fupd2N_wand with "H").
-    iIntros "($&H)".
-    iIntros.
-    iMod ("H" with "[//]") as "($&$&H&$)".
-    iModIntro.
+    iDestruct ("H" with "[$] [$] [$]") as "H".
+    iSplit; [by iLeft in "H" | iRight in "H"].
+    iIntros. iApply (physical_step2_wand_later with "(H [//])"); [done..|].
+    iIntros "!> ($&$&H&$)".
     match goal with | H : Atomic _ _ |- _ => rename H into Atomic0 end.
     rewrite /Atomic/= in Atomic0.
     edestruct (Atomic0) as (v&Hval); eauto.
@@ -323,9 +325,8 @@ Proof.
     iIntros. iModIntro. iFrame.
     iSplit.
     { iDestruct "H" as "(_&H)".
-      iIntros (????) "Hg HC Hlc".
-      iSpecialize ("H" with "[$] [$] [$]").
-      iApply (step_fupd2N_inner_wand with "H"); auto.
+      iIntros (???) "Hg HC".
+      by iSpecialize ("H" with "[$] [$]").
     }
     { iDestruct "H" as "(H&_)".
       rewrite /wpc_value_modality. iIntros.
@@ -339,20 +340,21 @@ Qed.
 Lemma wpc0_modality_postcondition_cancel s mj E e Φ Φc :
   (wpc0 s mj E e Φ Φc) -∗
   (wpc0 s mj E e (λ v, wpc_crash_modality ⊤ mj Φc ∧ (wpc_value_modality ⊤ mj (Φ v))) Φc).
-Proof.
+Proof using later_tokG0.
   iIntros "H".
   iLöb as "IH" forall (e E).
   rewrite ?wpc0_unfold. rewrite /wpc_pre.
   iSplit; last first.
   { iDestruct "H" as "(_&H)". eauto. }
   destruct (to_val e).
-  - iIntros (q g1 ns D κs) "Hg HNC".
+  - iIntros (q g1 D κs) "Hg HNC".
     iFrame. iModIntro.
     iSplit.
     { iDestruct "H" as "(_&H)".
-      iIntros (????) "Hg HC Hlc".
-      iSpecialize ("H" with "[$] [$] [$]").
-      iApply (step_fupd2N_inner_wand with "H"); auto.
+      iIntros (???) "Hg HC".
+      iSpecialize ("H" with "[$] [$]").
+      iMod (fupd_mask_subseteq E) as "Hcl"; [set_solver|].
+      iMod "H" as "$". by iMod "Hcl".
     }
     { iDestruct "H" as "(H&_)".
       rewrite /wpc_value_modality. iIntros.
@@ -363,13 +365,11 @@ Proof.
       iMod "H" as "($&$&$)". iMod "Hclo"; eauto. }
   - iIntros.
     iDestruct "H" as "(H&_)".
-    iMod ("H" with "[$] [$] [$] [$]") as "H". iModIntro.
-    simpl. iMod "H". iModIntro. iNext. iMod "H". iModIntro.
-    iApply (step_fupd2N_wand with "H").
-    iIntros "($&H)".
-    iIntros.
-    iMod ("H" with "[//]") as "($&$&H&$)".
-    iModIntro. by iApply "IH".
+    iDestruct ("H" with "[$] [$] [$]") as "H".
+    iSplit; [by iLeft in "H"|iRight in "H"].
+    iIntros. iApply (physical_step2_wand_later with "(H [//])"); [done..|].
+    iIntros "!> ($&$&H&$)".
+    by iApply "IH".
 Qed.
 
 Lemma wpc_crash_modality_intro E1 mj P :
@@ -377,9 +377,7 @@ Lemma wpc_crash_modality_intro E1 mj P :
 Proof.
   iIntros "H".
   rewrite /wpc_crash_modality.
-  iIntros (g1 ns D κs) "Hg #C Hlc".
-  iApply (step_fupd2N_inner_later); auto.
-  iNext. iFrame.
+  iIntros (g1 D κs) "$ _". by iFrame.
 Qed.
 
 Lemma wpc_crash_modality_wand E1 mj P Q :
@@ -389,42 +387,21 @@ Lemma wpc_crash_modality_wand E1 mj P Q :
 Proof.
   iIntros "Hwpc Hwand".
   rewrite /wpc_crash_modality.
-  iIntros (g1 ns D κs) "Hg #C Hlc".
-  iApply (step_fupd2N_inner_fupd2).
-  iSpecialize ("Hwpc" with "[$] [$] [$]").
-  iApply (step_fupd2N_inner_wand with "Hwpc"); auto.
-  iIntros "($&HP)". by iMod ("Hwand" with "[$]") as "$".
+  iIntros (g1 D κs) "Hg #C".
+  iMod ("Hwpc" with "[$] [$]") as "[$ HP]".
+  iApply fupd_fupd2. by iApply "Hwand".
 Qed.
 
-Lemma wpc_crash_modality_combine_cred E1 mj P1 P2 :
-  later_tok -∗
-  ▷ wpc_crash_modality E1 mj P1 -∗
-  ▷ wpc_crash_modality E1 mj P2 -∗
-  wpc_crash_modality E1 mj (£2 ∗ P1 ∗ P2).
+Lemma wpc_crash_modality_combine' E1 mj P1 P2 :
+  (* later_tok -∗ *)
+  wpc_crash_modality E1 mj P1 -∗
+  wpc_crash_modality E1 mj P2 -∗
+  wpc_crash_modality E1 mj (P1 ∗ P2).
 Proof.
-  iIntros "Htok H1 H2".
-  rewrite /wpc_crash_modality.
-  iIntros (g1 ns D κs) "Hg #C Hlc".
-  iMod (later_tok_decr with "[$]") as (ns' Hle) "Hg".
-  iApply (step_fupd2N_inner_fupd2).
-  iApply (step_fupd2N_inner_le).
-  { apply (num_laters_per_step_exp ns'). lia. }
-  iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo'"; [set_solver+..|].
-  iEval (simpl).
-  do 2 (iModIntro; iModIntro; iNext).
-  iMod "Hclo'".
-  iApply step_fupd2N_inner_add.
-  iDestruct (lc_weaken with "Hlc") as "Hlc".
-  { apply (num_laters_per_step_exp ns'). lia. }
-  iDestruct "Hlc" as "[[Hlc1 Hlc2] Hlc3]".
-  iSpecialize ("H1" with "[$] [$] [$]").
-  iApply (step_fupd2N_inner_wand with "H1"); auto.
-  iIntros "(Hg&HP1)".
-  iSpecialize ("H2" with "[$] [$] [$]").
-  iApply (step_fupd2N_inner_wand with "H2"); auto.
-  iIntros "(Hg&$)". iFrame.
-  iMod (global_state_interp_le with "[$]") as "$"; auto.
-  lia.
+  iIntros "H1 H2". rewrite /wpc_crash_modality.
+  iIntros (g1 D κs) "Hg #C".
+  iMod ("H1" with "[$] [$]") as "[Hg $]".
+  by iMod ("H2" with "[$] [$]") as "[$ $]".
 Qed.
 
 Lemma wpc_crash_modality_combine E1 mj P1 P2 :
@@ -432,32 +409,33 @@ Lemma wpc_crash_modality_combine E1 mj P1 P2 :
   ▷ wpc_crash_modality E1 mj P1 -∗
   ▷ wpc_crash_modality E1 mj P2 -∗
   wpc_crash_modality E1 mj (P1 ∗ P2).
-Proof.
-  iIntros.
-  iApply (wpc_crash_modality_wand with "[-]").
-  { iApply (wpc_crash_modality_combine_cred with "[$] [$] [$]"). }
-  by iIntros "(?&$&$)".
+Proof using later_tokG0.
+  iIntros "Htok H1 H2".
+  iDestruct (later_tokN_use with "[$]") as "[[[Hlc _] _] _]".
+  iApply (wpc_crash_modality_fupd).
+  iApply (lc_fupd_add_later with "[$]").
+  iNext. iModIntro. iApply (wpc_crash_modality_combine' with "H1 [$]").
 Qed.
 
 Lemma wpc_crash_modality_split E Einv mj1 mj2 P1 P2 :
   (/2 < mj1 < mj2)%Qp →
   later_tok -∗
-  later_tok -∗
   pri_inv_tok 1%Qp Einv -∗
   wpc_crash_modality E mj1 (P1 ∗ P2) -∗
   ||={∅|∅, ∅|∅}=> wpc_crash_modality E mj2 P1 ∗ wpc_crash_modality E mj2 P2.
-Proof using stagedG0.
+Proof using stagedG0 later_tokG0.
   destruct (decide (mj2 ≤ 1)%Qp) as [Hle|Hnle]; last first.
   { iIntros. iModIntro.
     iSplitL.
-    - iIntros (????) "Hg HC".
+    - iIntros (???) "Hg HC".
       iDestruct (pri_inv_tok_global_valid with "[$]") as %(?&?).
       exfalso. naive_solver.
-    - iIntros (????) "Hg HC".
+    - iIntros (???) "Hg HC".
       iDestruct (pri_inv_tok_global_valid with "[$]") as %(?&?).
       exfalso. naive_solver.
   }
-  iIntros (Hlt) "Hltok Hltok2 H".
+  iIntros (Hlt) "Htok H".
+  iDestruct (later_tokN_use with "Htok") as "[[[Hltok Hltok2] _] Hcl]".
   iIntros "Hg".
   destruct (Qp_plus_split_alt mj1 mj2) as (qa&qb&Hle1&Hlt2&Hle3); auto.
   rewrite -Hle1.
@@ -474,39 +452,29 @@ Proof using stagedG0.
   iSplitL "Hltok Hqa1 H1".
   {
     rewrite /wpc_crash_modality.
-    iIntros (? ns D ?) "Hg #HC Hlc".
-    iMod (later_tok_decr with "[$]") as (ns' Hle') "Hg".
-    iApply (step_fupd2N_inner_fupd2).
-    iApply (step_fupd2N_inner_le _ (S (num_laters_per_step ns'))).
-    { apply Nat.le_succ_l. apply (num_laters_per_step_lt). lia. }
-    simpl.
+    iIntros (? D ?) "Hg #HC".
     iDestruct (pri_inv_tok_disj with "[$]") as %[Hdisj|Hval]; last first.
     { exfalso. apply Qp.lt_nge in Hlt2. revert Hval. rewrite frac_valid.
       intros HleX. apply Hlt2. etransitivity; last eassumption.
       apply Qp.add_le_mono_r. auto. }
     iMod (pri_inv_acc with "Hinv") as "(Hinner&Hclo)".
     { set_solver. }
-    iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo'"; [set_solver+..|].
-    iModIntro. iModIntro. iNext. iMod "Hclo'".
+    iApply (fupd2_trans). iApply (fupd_fupd2 E E).
+    iApply (lc_fupd_add_later with "Hltok").
+    iNext. iModIntro.
     iDestruct "Hinner" as "(Htok&Hcases)".
     iDestruct "Hcases" as "[Hunrun|Hrun]".
     {
       iDestruct (pri_inv_tok_join with "Hqa1 Htok") as "Hitok'".
       iDestruct (pri_inv_tok_le_acc mj1 with "[$]") as "(Hitok&Hitok_clo)".
       { auto. }
-      iDestruct (pri_inv_tok_global_le_acc _ _ _ mj1 with "[] Hg") as "(Hg&Hg_clo)".
+      iDestruct (pri_inv_tok_global_le_acc _ _ mj1 with "[] Hg") as "(Hg&Hg_clo)".
       { iPureIntro. split; first naive_solver.
         apply Qp.lt_le_incl; naive_solver. }
       iMod (pri_inv_tok_disable with "[$Hg $Hitok]") as "Hg".
       replace (⊤ ∖ D ∖ Einv) with (⊤ ∖ (Einv ∪ D)) by set_solver.
-      iSpecialize ("Hunrun" with "[$] [$] [Hlc]").
-      {
-        iApply (lc_weaken with "Hlc").
-        {  assert (Hlt': ns' < ns) by lia.
-           apply num_laters_per_step_le in Hlt'. lia. }
-      }
-      iMod "Hunrun".  iModIntro. iApply (step_fupd2N_wand with "Hunrun").
-      iIntros "Hunrun". iMod "Hunrun" as "(Hg&HP1&HP2)".
+      iSpecialize ("Hunrun" with "[$] [$]").
+      iMod "Hunrun" as "(Hg&HP1&HP2)".
       iMod (pending_upd_done with "H1") as "Hdone".
       iMod (pri_inv_tok_enable with "[$Hg //]") as "(Hitok&Hg)".
       iDestruct ("Hitok_clo" with "[$]") as "Hitok".
@@ -515,9 +483,7 @@ Proof using stagedG0.
       { iFrame. iNext. iRight. iFrame. }
       iModIntro.
       iDestruct ("Hg_clo" with "[$]") as "Hg_clo".
-      iMod (global_state_interp_le with "[$]") as "$".
-      { lia. }
-      eauto.
+      iFrame.
     }
     iDestruct "Hrun" as "(Hrun1&Hrun2)".
     iDestruct "Hrun1" as "[HP1|Hfalse]"; last first.
@@ -525,47 +491,33 @@ Proof using stagedG0.
     iMod (pending_upd_done with "H1") as "Hdone".
     iMod ("Hclo" with "[Hdone Hrun2 Htok]").
     { iFrame. iRight. iNext. iFrame. }
-
-    iApply (step_fupd2N_inner_later); auto. iModIntro.
-    iMod (global_state_interp_le with "[$]") as "$".
-    { lia. }
-    iFrame. eauto.
+    by iFrame.
   }
   {
     rewrite /wpc_crash_modality.
-    iIntros (? ns D ?) "Hg #HC Hlc".
-    iMod (later_tok_decr with "[$]") as (ns' Hle') "Hg".
-    iApply (step_fupd2N_inner_fupd2).
-    iApply (step_fupd2N_inner_le _ (S (num_laters_per_step ns'))).
-    { apply Nat.le_succ_l. apply (num_laters_per_step_lt). lia. }
-    simpl.
+    iIntros (? D ?) "Hg #HC".
     iDestruct (pri_inv_tok_disj with "[$]") as %[Hdisj|Hval]; last first.
     { exfalso. apply Qp.lt_nge in Hlt2. revert Hval. rewrite frac_valid.
       intros HleX. apply Hlt2. etransitivity; last eassumption.
       apply Qp.add_le_mono_r. auto. }
     iMod (pri_inv_acc with "Hinv") as "(Hinner&Hclo)".
     { set_solver. }
-    iMod (fupd2_mask_subseteq ∅ ∅) as "Hclo'"; [set_solver+..|].
-    iModIntro. iModIntro. iNext. iMod "Hclo'".
+    iApply (fupd2_trans). iApply (fupd_fupd2 E E).
+    iApply (lc_fupd_add_later with "Hltok2").
+    iNext. iModIntro.
     iDestruct "Hinner" as "(Htok&Hcases)".
     iDestruct "Hcases" as "[Hunrun|Hrun]".
     {
       iDestruct (pri_inv_tok_join with "Hqa2 Htok") as "Hitok'".
       iDestruct (pri_inv_tok_le_acc mj1 with "[$]") as "(Hitok&Hitok_clo)".
       { auto. }
-      iDestruct (pri_inv_tok_global_le_acc _ _ _ mj1 with "[] Hg") as "(Hg&Hg_clo)".
+      iDestruct (pri_inv_tok_global_le_acc _ _ mj1 with "[] Hg") as "(Hg&Hg_clo)".
       { iPureIntro. split; first naive_solver.
         apply Qp.lt_le_incl; naive_solver. }
       iMod (pri_inv_tok_disable with "[$Hg $Hitok]") as "Hg".
       replace (⊤ ∖ D ∖ Einv) with (⊤ ∖ (Einv ∪ D)) by set_solver.
-      iSpecialize ("Hunrun" with "[$] [$] [Hlc]").
-      {
-        iApply (lc_weaken with "Hlc").
-        {  assert (Hlt': ns' < ns) by lia.
-           apply num_laters_per_step_le in Hlt'. lia. }
-      }
-      iMod "Hunrun".  iModIntro. iApply (step_fupd2N_wand with "Hunrun").
-      iIntros "Hunrun". iMod "Hunrun" as "(Hg&HP1&HP2)".
+      iSpecialize ("Hunrun" with "[$] [$]").
+      iMod "Hunrun" as "(Hg&HP1&HP2)".
       iMod (pending_upd_done with "H2") as "Hdone".
       iMod (pri_inv_tok_enable with "[$Hg //]") as "(Hitok&Hg)".
       iDestruct ("Hitok_clo" with "[$]") as "Hitok".
@@ -574,9 +526,7 @@ Proof using stagedG0.
       { iFrame. iNext. iRight. iFrame. }
       iModIntro.
       iDestruct ("Hg_clo" with "[$]") as "Hg_clo".
-      iMod (global_state_interp_le with "[$]") as "$".
-      { lia. }
-      eauto.
+      iFrame.
     }
     iDestruct "Hrun" as "(Hrun1&Hrun2)".
     iDestruct "Hrun2" as "[HP2|Hfalse]"; last first.
@@ -584,11 +534,7 @@ Proof using stagedG0.
     iMod (pending_upd_done with "H2") as "Hdone".
     iMod ("Hclo" with "[Hdone Hrun1 Htok]").
     { iFrame. iRight. iNext. iFrame. }
-
-    iApply (step_fupd2N_inner_later); auto. iModIntro.
-    iMod (global_state_interp_le with "[$]") as "$".
-    { lia. }
-    iFrame. eauto.
+    by iFrame.
   }
 Qed.
 
