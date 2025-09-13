@@ -479,7 +479,8 @@ Proof.
   intros HP.
   eapply (step_fupd2N_soundness _ _ _).
   iIntros (Hinv) "[H£ H£']".
-  iMod (tr_supply_alloc n) as "(%Htr & Hsup & H⧗)".
+  iMod (tr_supply_alloc (0 + n)) as "(%Htr & Hsup)".
+  iDestruct (tr_supply_tr_2 with "[$]") as "[Hsup H⧗]".
   iDestruct (HP with "[$]") as ">HP".
   iDestruct (physical_stepN_soundness_local with "[$] [$] [$]") as ">HP'".
   rewrite -step_fupdN_step_fupd2N. iApply fupd_fupd2.

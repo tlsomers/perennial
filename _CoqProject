@@ -17,16 +17,16 @@
 -arg -w -arg -deprecated-typeclasses-transparency-without-locality
 # Iris-disabled warnings
 -arg -w -arg -notation-overridden,-redundant-canonical-projection,-unknown-warning,-argument-scope-delimiter
--Q external/stdpp/stdpp stdpp
--Q external/stdpp/stdpp_unstable stdpp.unstable
--Q external/stdpp/stdpp_bitvector stdpp.bitvector
--Q external/iris/iris iris
--Q external/iris/iris_deprecated iris.deprecated
--Q external/iris/iris_unstable iris.unstable
--Q external/iris/iris_heap_lang iris.heap_lang
--Q external/coqutil/src/coqutil coqutil
+#By Opam# -Q external/stdpp/stdpp stdpp
+#By Opam# -Q external/stdpp/stdpp_unstable stdpp.unstable
+#By Opam# -Q external/stdpp/stdpp_bitvector stdpp.bitvector
+#By Opam# -Q external/iris/iris iris
+#By Opam# -Q external/iris/iris_deprecated iris.deprecated
+#By Opam# -Q external/iris/iris_unstable iris.unstable
+#By Opam# -Q external/iris/iris_heap_lang iris.heap_lang
+#By Opam# -Q external/coqutil/src/coqutil coqutil
 -Q external/Goose Goose
--Q external/record-update/src RecordUpdate
--Q external/coq-tactical/src Tactical
--Q external/iris-named-props/src iris_named_props
+#By Opam# -Q external/record-update/src RecordUpdate
+-Q ../external/coq-tactical/src Tactical
+#By Opam# -Q external/iris-named-props/src iris_named_props
 -Q new New
