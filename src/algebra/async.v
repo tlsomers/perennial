@@ -20,8 +20,6 @@ Definition asyncΣ K V `{Countable K, EqDecision V} : gFunctors :=
 #[global]
 Instance subG_asyncΣ Σ K V `{Countable K, EqDecision V} : subG (asyncΣ K V) Σ → asyncG Σ K V.
 Proof.
-  intros.
-  apply subG_inv in H0 as [? ?]. (* FIXME(tej): why is this needed? *)
   solve_inG.
 Qed.
 

@@ -419,12 +419,9 @@ Proof.
   iFrame.
 Qed.
 
-Program Instance goose_trGen : tr_generation := {
-  f n := (10*n)%nat;
-}.
-Next Obligation.
-  intros. simpl. lia.
-Qed.
+(** The generation function used in Goose tactics. *)
+Definition goose_linear_gen : generation_function :=
+  GenFun id ltac:(reflexivity).
 
 (** Global ghost state for GooseLang. *)
 Class gooseGlobalGS Σ : Set := GooseGlobalGS {
@@ -432,6 +429,8 @@ Class gooseGlobalGS Σ : Set := GooseGlobalGS {
   goose_trGS : trGS Σ;
   #[global] goose_prophGS :: proph_mapGS proph_id val Σ;
   #[global] goose_creditGS :: creditGS Σ;
+  #[global] goose_later_tokG :: later_tokG Σ;
+  goose_gen_linear : genInG Σ goose_linear_gen;
   goose_ffiGlobalGS : ffiGlobalGS Σ;
 }.
 (* Per-generation / "local" ghost state.
@@ -473,7 +472,6 @@ Global Program Instance goose_irisGS `{G: !gooseGlobalGS Σ}:
   irisGS goose_lang Σ := {
   iris_invGS := goose_invGS;
   iris_trGS := goose_trGS;
-  iris_trGen := goose_trGen;
   global_state_interp g mj D κs :=
     (ffi_global_ctx goose_ffiGlobalGS g.(global_world) ∗
      proph_map_interp κs g.(used_proph_id) ∗

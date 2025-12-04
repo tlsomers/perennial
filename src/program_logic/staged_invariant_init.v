@@ -16,7 +16,7 @@ Existing Instances pri_inv_tok_timeless.
 Section inv.
 Context `{IRISG: !irisGS Λ Σ, !generationGS Λ Σ}.
 Context `{PRI: !pri_invG IRISG}.
-Context `{!later_tokG IRISG}.
+Context `{!later_tokG Σ}.
 Context `{!stagedG Σ}.
 Implicit Types i : positive.
 Implicit Types N : namespace.

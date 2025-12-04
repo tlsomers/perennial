@@ -58,7 +58,7 @@ Definition wpc_value_modality `{!irisGS Λ Σ, !crashGS Σ} E1 mj Φc :=
 Section def.
 Context `{IRISG: !irisGS Λ Σ, !crashGS Σ}.
 Context `{!pri_invG IRISG}.
-Context `{!later_tokG IRISG}.
+Context `{!later_tokG Σ}.
 Context `{stagedG0: !stagedG Σ}.
 
 (*
@@ -151,7 +151,7 @@ End def.
 Section inv.
 Context `{IRISG: !irisGS Λ Σ, !generationGS Λ Σ}.
 Context `{PRI: !pri_invG IRISG}.
-Context `{!later_tokG IRISG}.
+Context `{!later_tokG Σ}.
 Context `{stagedG0: !stagedG Σ}.
 Implicit Types i : positive.
 Implicit Types N : namespace.

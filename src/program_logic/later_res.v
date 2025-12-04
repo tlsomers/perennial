@@ -4,16 +4,21 @@ From Perennial.base_logic Require Export invariants.
 From Perennial.program_logic Require Import crash_weakestpre weakestpre.
 Set Default Proof Using "Type".
 
+Local Definition later_tok_gen : generation_function :=
+  GenFun (λ n, 10*n) ltac:(reflexivity).
 
-(* This class holds for IrisG instances with certain properties needed to show
-   the existence of a token that can be spent to strip a later around a `wpc` *)
-Class later_tokG {Λ Σ} (IRISG : irisGS Λ Σ) := {
-  f_exp : ∀ n, 10*n ≤ f n;
-}.
+Class later_tokG Σ :=
+  #[local] later_tokG_gen :: genInG Σ later_tok_gen.
+
+Definition later_tokΣ : gFunctors := #[ later_tok_gen ].
+
+Global Instance subG_later_tokΣ Σ : subG later_tokΣ Σ → later_tokG Σ.
+Proof. solve_inG. Qed.
+
 
 Section later_tok.
 
-Context `{IRISG: !invGS Σ, trGS Σ}.
+Context `{IRISG: !invGS Σ, trGS Σ, later_tokG Σ }.
 
 Definition later_tokN_def n : iProp Σ := ⧗ (n*2) ∗ £ (n*2).
 Local Definition later_tokN_aux : seal ( @later_tokN_def). Proof. by eexists. Qed.
@@ -72,7 +77,7 @@ Notation later_tok := (later_tokN 1).
 Section res.
 
 Context `{IRISG: !irisGS Λ Σ, generationGS Λ Σ}.
-Context `{LT: !later_tokG IRISG}.
+Context `{LT: !later_tokG Σ}.
 Implicit Types s : stuckness.
 Implicit Types P : iProp Σ.
 Implicit Types Φ : val Λ → iProp Σ.
@@ -88,10 +93,8 @@ Proof using LT.
   iIntros "[H⧗ $]".
   iMod (step_update_tr_use with "H⧗") as "_".
   iIntros "!> [H⧗ H£]".
-  assert (n * 10 * 2 ≤ f (n*2)) as Hle.
-  { etrans; [|apply f_exp]; lia. }
-  iDestruct (tr_weaken with "[$]") as "$"; first done.
-  iDestruct (lc_weaken with "[$]") as "$"; done.
+  replace (n * 10 * 2) with (10 * (n * 2)) by lia.
+  iFrame.
 Qed.
 
 Definition later_tokN_pure_step E P:
@@ -108,9 +111,9 @@ Proof using LT.
   rewrite later_tokN_unseal /later_tokN_def.
   iApply "HP".
   iDestruct (lc_weaken with "Hlc") as "$".
-  { pose proof (f_exp 1); lia. }
+  { simpl; lia. }
   iDestruct (tr_weaken with "Htr") as "$".
-  { pose proof (f_exp 1); lia. }
+  { simpl; lia. }
 Qed.
 
 Lemma wpc_later_tok_use2_credits s E e Φ Φc :

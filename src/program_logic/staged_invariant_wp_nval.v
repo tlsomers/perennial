@@ -16,7 +16,7 @@ Existing Instances pri_inv_tok_timeless.
 Section def.
 Context `{IRISG: !irisGS Λ Σ, !generationGS Λ Σ}.
 Context `{!pri_invG IRISG}.
-Context `{!later_tokG IRISG}.
+Context `{!later_tokG Σ}.
 Context `{!stagedG Σ}.
 
 Lemma staged_inv_wp_nval E P Qs Qs' R :

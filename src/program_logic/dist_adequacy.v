@@ -199,13 +199,13 @@ Qed.
 
 End distributed_adequacy.
 
-Theorem wpd_strong_adequacy Σ Λ CS `{Hinvpre: !invGpreS Σ} `{Htrpre: !trGpreS Σ} `{Htrgen : !tr_generation} `{Hcrashpre : !crashGpreS Σ}
+Theorem wpd_strong_adequacy Σ Λ CS `{Hinvpre: !invGpreS Σ} `{Htrpre: !trGpreS Σ} `{Hcrashpre : !crashGpreS Σ}
     (ebσs : list node_init_cfg) g1 n κs dns2 g2 φ ntr :
   (∀ `(Hinv : !invGS Σ) `(Htr : !trGS Σ),
      ⊢ ⧗ ntr -∗ £ ntr ={⊤}=∗ ∃
         (global_stateI : global_state Λ → fracR → coPset → list (observation Λ) → iProp Σ)
         (fork_post : val Λ → iProp Σ),
-       let HI := IrisGS Λ Σ Hinv Htr Htrgen (global_stateI) (fork_post) in
+       let HI := IrisGS Λ Σ Hinv Htr (global_stateI) (fork_post) in
        global_stateI g1 1%Qp ∅ κs  ∗
        wpd CS ⊤ ebσs ∗
        (⌜ ∀ dn, dn ∈ dns2 → not_stuck_node dn g2 ⌝ -∗
@@ -223,7 +223,7 @@ Proof.
   apply (physical_stepN_soundness _ ntr n).
   iIntros (Hinv Htr) "[Htr Hlc]".
   iMod (Hwp _ _ with "Htr Hlc") as (global_stateI fork_post) "(Hg & Hwp & Hφ)".
-  set (HI := IrisGS Λ Σ Hinv Htr _ (global_stateI) (fork_post)).
+  set (HI := IrisGS Λ Σ Hinv Htr (global_stateI) (fork_post)).
   iMod (stwpnodes_strong_adequacy _
                1%Qp n _ _ _ _ _ _ []
     with "[Hg] [Hwp]") as "H"; first done.
@@ -258,7 +258,7 @@ Proof.
   apply (physical_stepN_soundness _ ntr n).
   iIntros (Hinv Htr) "[Htr Hlc]".
   iMod (Hwp _ _ with "Htr Hlc") as (global_stateI fork_post) "(Hg & Hwp & Hφ)".
-  set (HI := IrisGS Λ Σ Hinv Htr _ (global_stateI) (fork_post)).
+  set (HI := IrisGS Λ Σ Hinv Htr (global_stateI) (fork_post)).
   iMod (stwpnodes_progress _ 1%Qp n _ _ _ _ _ _ []
     with "[Hg] [Hwp]") as "H"; try done.
   { rewrite app_nil_r /=. iExact "Hg". }
@@ -300,13 +300,13 @@ Proof.
   - constructor; naive_solver.
 Qed.
 
-Corollary wpd_dist_adequacy_inv Σ Λ CS `{!invGpreS Σ} `{!trGpreS Σ} `{!tr_generation} `{!crashGpreS Σ}
+Corollary wpd_dist_adequacy_inv Σ Λ CS `{!invGpreS Σ} `{!trGpreS Σ} `{!crashGpreS Σ}
           ebσs g φinv ntr:
   (∀ `(Hinv : !invGS Σ) `(Htr : !trGS Σ) κs,
      ⊢ ⧗ ntr -∗ £ ntr ={⊤}=∗ ∃
        (global_stateI : global_state Λ → fracR → coPset → list (observation Λ) → iProp Σ)
        (fork_post : val Λ → iProp Σ),
-       let HI := IrisGS Λ Σ Hinv Htr _ (global_stateI) (fork_post) in
+       let HI := IrisGS Λ Σ Hinv Htr (global_stateI) (fork_post) in
        global_stateI g 1%Qp ∅ κs  ∗
        wpd CS ⊤ ebσs ∗
        (∀ g κs, global_stateI g 1%Qp ∅ κs -∗ |={⊤, ∅}=> ⌜ φinv g ⌝)) →

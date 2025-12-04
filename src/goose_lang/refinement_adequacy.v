@@ -31,7 +31,7 @@ Instance subG_refinement_heapPreG `{ext: spec_ffi_op} `{@spec_ffi_interp_adequac
 Proof.
   assert (subG (GFunctor (frac_coPsetR)) Σ → inG Σ frac_coPsetR).
   { solve_inG. }
-  solve_inG_deep.
+  solve_inG.
 Qed.
 
 Section refinement.

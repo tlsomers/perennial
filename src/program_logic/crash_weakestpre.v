@@ -19,7 +19,6 @@ global parameter, instantiated once all the way at the top in adequacy. *)
 Class irisGS (Λ : language) (Σ : gFunctors) := IrisGS {
   #[global] iris_invGS :: invGS Σ;
   #[global] iris_trGS :: trGS Σ;
-  #[global] iris_trGen :: tr_generation;
 
   (** The global state interpretation is a whole-system invariant that should
   hold in between each step of reduction. Here [global_state Λ] is the global

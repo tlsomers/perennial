@@ -64,7 +64,7 @@ Proof.
 Qed.
 
 
-Context `{!later_tokG IRISG} `{!pri_invG IRISG}.
+Context `{!later_tokG Σ} `{!pri_invG IRISG}.
 
 Lemma wpc0_mj_le' E s mj1 mj2 e Φ Φc:
   (mj1 = mj2 ∨ /2 < mj1 ≤ mj2)%Qp →

@@ -12,7 +12,7 @@ Class lockmapG Σ : Set := #[global] lockmap_inG :: ghost_mapG Σ u64 bool.
 Definition lockmapΣ := ghost_mapΣ u64 bool.
 #[global]
 Instance subG_lockmapΣ Σ : subG lockmapΣ Σ → lockmapG Σ.
-Proof. solve_inG. Qed.
+Proof. apply subG_ghost_mapΣ. Qed.
 
 Section heap.
 Context `{!heapGS Σ} `{!goGlobalsGS Σ}.

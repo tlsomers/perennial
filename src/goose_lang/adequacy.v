@@ -51,30 +51,15 @@ Class gooseGpreS `{ext: ffi_syntax} `{EXT_SEM: !ffi_semantics ext ffi}
   #[global] goose_preG_trace :: trace_preG Σ;
   #[global] goose_preG_credit :: credit_preG Σ;
   #[global] goose_preG_globals :: globals_preG Σ;
+  #[global] goose_preG_later_tok :: later_tokG Σ;
+  goose_preG_linear :: genInG Σ goose_linear_gen;
 }.
 
-Ltac solve_inG_deep :=
-  intros;
-  (* XXX: had to add cases with more _'s compared to solve_inG to get this work *)
-   lazymatch goal with
-   | H:subG (?xΣ _ _ _ _ _ _) _ |- _ => try unfold xΣ in H
-   | H:subG (?xΣ _ _ _ _ _) _ |- _ => try unfold xΣ in H
-   | H:subG (?xΣ _ _ _ _) _ |- _ => try unfold xΣ in H
-   | H:subG (?xΣ _ _ _) _ |- _ => try unfold xΣ in H
-   | H:subG (?xΣ _ _) _ |- _ => try unfold xΣ in H
-   | H:subG (?xΣ _) _ |- _ => try unfold xΣ in H
-   | H:subG ?xΣ _ |- _ => try unfold xΣ in H
-   end; repeat match goal with
-               | H:subG (gFunctors.app _ _) _ |- _ => apply subG_inv in H; destruct H
-               end; repeat match goal with
-                           | H:subG _ _ |- _ => move : H; apply subG_inG in H || clear H
-                           end; intros; try done; split; assumption || by apply _.
-
 Definition heapΣ `{ext: ffi_syntax} `{ffi_interp_adequacy} : gFunctors :=
-  #[invΣ; trΣ; crashΣ; na_heapΣ loc val; proph_mapΣ proph_id val; ffiΣ; traceΣ; creditΣ; globalsΣ].
+  #[invΣ; trΣ; crashΣ; na_heapΣ loc val; proph_mapΣ proph_id val; ffiΣ; traceΣ; creditΣ; globalsΣ; goose_linear_gen; later_tokΣ].
 #[global]
 Instance subG_heapPreG `{ext: ffi_syntax} `{@ffi_interp_adequacy ffi Hinterp ext EXT} {Σ} :
   subG heapΣ Σ → gooseGpreS Σ.
 Proof.
-  solve_inG_deep.
+  solve_inG.
 Qed.

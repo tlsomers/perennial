@@ -473,7 +473,7 @@ Proof.
     by iApply ("IH" with "Hn Hupd").
 Qed.
 
-Lemma physical_stepN_soundness `{!invGpreS Σ, !trGpreS Σ, !tr_generation} (P : iProp Σ) `{!Plain P} n k :
+Lemma physical_stepN_soundness `{!invGpreS Σ, !trGpreS Σ} (P : iProp Σ) `{!Plain P} n k :
     (∀ {Hinv : invGS Σ} {Htr: trGS Σ}, ⧗ n ∗ £ n ⊢ ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^k ||={⊤|∅, ∅|∅}=> P) → ⊢ P.
 Proof.
   intros HP.

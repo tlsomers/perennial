@@ -115,7 +115,7 @@ Qed.
    See the statement of [wp_step_fupdN] below to understand the use of
    ordinary conjunction here. *)
 (* FIXME(RJ) we should probably have such a lemma for WPC and apply that here *)
-Lemma wp_step_fupdN_strong n s E1 E2 e P Φ :
+Lemma wp_step_fupdN_strong {f} `{Hgen: genInG Σ f} n s E1 E2 e P Φ :
   TCEq (to_val e) None → E2 ⊆ E1 →
   (∀ σ g mj D κs nt, state_interp σ nt -∗ global_state_interp g mj D κs
        ={E1,∅}=∗ ⧖ n) ∧
@@ -228,7 +228,7 @@ Qed.
    the WP or in the proof of the n-steps fancy update. In order to
    describe this unusual resource flow, we use ordinary conjunction as
    a premise. *)
-Lemma wp_step_fupdN n s E1 E2 e P Φ :
+Lemma wp_step_fupdN {f} `{Hgen: genInG Σ f} n s E1 E2 e P Φ :
   TCEq (to_val e) None → E2 ⊆ E1 →
   (∀ σ g mj D κs nt, state_interp σ nt -∗ global_state_interp g mj D κs
        ={E1,∅}=∗ ⧖ n) ∧
@@ -253,7 +253,7 @@ Proof.
   iApply (wp_step_fupdN_strong 0 _ E1 E2 with "[-]"); [done|..]. iSplit.
   - iIntros (??????) "_ _". iMod tr_persistent_zero as "$".
     iMod (fupd_mask_subseteq ∅); set_solver.
-  - iFrame "H". rewrite f_zero.
+  - iFrame "H".
     iMod "HR" as "$". auto.
 Qed.
 

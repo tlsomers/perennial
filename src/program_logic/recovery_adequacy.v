@@ -303,9 +303,9 @@ Qed.
 
 Axiom functional_extensionality: forall {A B} (f g:A->B) , (forall x, f x = g x) -> f = g.
 
-Lemma step_fupdN_fresh_soundness {Λ Σ} `{!invGpreS Σ} `{!trGpreS Σ} `{Htrgen : !tr_generation} `{!crashGpreS Σ} (φ : Prop) ns k n:
+Lemma step_fupdN_fresh_soundness {Λ Σ} `{!invGpreS Σ} `{!trGpreS Σ} `{!crashGpreS Σ} (φ : Prop) ns k n:
   (∀ (Hi: invGS Σ) (Htr : trGS Σ) (Hc: crashGS Σ), ⧗ n ∗ £ n -∗ NC 1 ={⊤}=∗
-    ∃ (HI: irisGS Λ Σ) (HG:generationGS Λ Σ) (Hpf1: iris_invGS = Hi) (Hpf2: iris_trGS = Htr) (Hpf3: iris_trGen = Htrgen) (Hpf4: iris_crashGS = Hc),
+    ∃ (HI: irisGS Λ Σ) (HG:generationGS Λ Σ) (Hpf1: iris_invGS = Hi) (Hpf2: iris_trGS = Htr) (Hpf4: iris_crashGS = Hc),
       (|={⊤}=> step_fupdN_fresh ns HG (λ _,
         ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^k ||={⊤|∅, ∅|∅}=>
         ⌜φ⌝))%I) →
@@ -316,7 +316,7 @@ Proof.
   eapply (physical_stepN_soundness _ n (sum_list (S <$> ns) + k)) => Hinv Htr.
   iIntros "H⧗£".
   iMod NC_alloc as (Hc) "HNC".
-  iMod (Hiter Hinv Htr Hc with "H⧗£ HNC") as (Hiris Hgen <- <- <- <-) "H".
+  iMod (Hiter Hinv Htr Hc with "H⧗£ HNC") as (Hiris Hgen <- <- <-) "H".
   iApply (step_fupdN_fresh_rearrange φ ns k with "H").
 Qed.
 
@@ -353,14 +353,14 @@ Proof.
   - constructor; naive_solver.
 Qed.
 
-Corollary wp_recv_adequacy_inv Σ Λ CS `{!invGpreS Σ} `{!trGpreS Σ} `{Htrgen : !tr_generation} `{!crashGpreS Σ} s e r σ g φ φr φinv ntr:
+Corollary wp_recv_adequacy_inv Σ Λ CS `{!invGpreS Σ} `{!trGpreS Σ} `{!crashGpreS Σ} s e r σ g φ φr φinv ntr:
   (∀ `(Hinv : !invGS Σ) `(Htr : !trGS Σ) `(Hc: !crashGS Σ) κs,
      ⧗ ntr ∗ £ ntr ⊢ |={⊤}=> ∃
          (stateI : state Λ → nat → iProp Σ) (* for the initial generation *)
          (global_stateI : global_state Λ → fracR → coPset → list (observation Λ) → iProp Σ)
          (fork_post : val Λ → iProp Σ)
          Φinv,
-        let HI := IrisGS Λ Σ Hinv Htr Htrgen (global_stateI) (fork_post) in
+        let HI := IrisGS Λ Σ Hinv Htr (global_stateI) (fork_post) in
         let HG := GenerationGS Λ Σ Hc stateI in
        □ (∀ σ nt, stateI σ nt -∗ |NC={⊤, ∅}=> ⌜ φinv σ ⌝) ∗ (* φinv for initial gen. *)
        □ (∀ HG, Φinv Hinv HG -∗ □ ∀ σ nt, state_interp σ nt -∗ |@NC={iris_crashGS, ⊤, ∅}=> ⌜ φinv σ ⌝) ∗ (* φinv for later generations *)
@@ -380,14 +380,14 @@ Proof.
   iIntros "H⧗£ HNC".
   iMod (Hwp Hinv Htr Hc κs with "H⧗£") as (stateI global_stateI fork_post Φinv) "(#Hinv1&#Hinv2&Hσ&Hg&H)".
   iModIntro.
-  set (HI := IrisGS Λ Σ Hinv Htr _ (global_stateI) (fork_post)).
+  set (HI := IrisGS Λ Σ Hinv Htr (global_stateI) (fork_post)).
   set (HG := GenerationGS Λ Σ Hc stateI).
   iExists HI, HG.
   iDestruct (wptp_recv_strong_adequacy
                (Φinv' := (λ HG, ∀ σ nt, state_interp σ nt -∗ |@NC={iris_crashGS, ⊤, ∅}=> ⌜ φinv σ ⌝)%I)
                (κs' := []) (HG := HG) with "[Hσ] [Hg] [H] [] [] HNC") as "H"; eauto.
   { rewrite app_nil_r. eauto. }
-  do 4 iExists eq_refl.
+  do 3 iExists eq_refl.
   iModIntro.
   iApply (step_fupdN_fresh_wand with "H").
   iIntros (HG') "H".
@@ -416,14 +416,14 @@ Proof.
   iMod (Hwp Hinv Htr Hc κs with "H⧗£") as (stateI global_stateI fork_post) "H".
   iDestruct "H" as (Φinv) "(#Hinv1&#Hinv2&Hσ&Hg&H)".
   iModIntro.
-  set (HI := IrisGS Λ Σ Hinv Htr _ (global_stateI) (fork_post)).
+  set (HI := IrisGS Λ Σ Hinv Htr (global_stateI) (fork_post)).
   set (HG := GenerationGS Λ Σ Hc stateI).
   iExists HI, HG.
   iDestruct (wptp_recv_progress
                (Φinv' := (λ HG, ∀ σ nt, state_interp σ nt -∗ |@NC={iris_crashGS, ⊤, ∅}=> ⌜ φinv σ ⌝)%I)
                (κs' := []) (HG := HG) with "[Hσ] [Hg] [H] [] [] HNC") as "H"; [eauto..|].
   { rewrite app_nil_r. eauto. }
-  do 4 iExists eq_refl. iModIntro.
+  do 3 iExists eq_refl. iModIntro.
   iApply (step_fupdN_fresh_wand with "H").
   iIntros (?) "$".
  }

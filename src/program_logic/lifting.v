@@ -146,7 +146,7 @@ Proof.
   iIntros "H /=". iFrame.
 Qed.
 
-Lemma wp_lift_pure_step_no_fork `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E E' Φ e1 :
+Lemma wp_lift_pure_step_no_fork {f} `{Hgen: genInG Σ f} `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E E' Φ e1 :
   (∀ σ1 g1, if s is NotStuck then reducible e1 σ1 g1 else to_val e1 = None) →
   (∀ κ σ1 g1 e2 σ2 g2 efs, prim_step e1 σ1 g1 κ e2 σ2 g2 efs → κ = [] ∧ σ2 = σ1 ∧ g2 = g1 ∧ efs = []) →
   (∀ κ e2 efs σ g, ⌜prim_step e1 σ g κ e2 σ g efs⌝ -∗ £ (f 1) -∗ ⧗ (f 1) -∗ |={E}[E']▷=> WP e2 @ s; E {{ Φ }})
@@ -156,7 +156,7 @@ Proof.
   iApply (wp_lift_pure_step_no_fork_pstep); try done.
   iIntros. iApply physical_step_step. iSplit.
   { iMod (tr_persistent_zero) as "$". iMod (fupd_mask_subseteq ∅) as "Hclo"; [set_solver|done]. }
-  iIntros "Hlc Htr". rewrite f_zero /=.
+  iIntros "Hlc Htr". rewrite genFun_zero /=.
   iMod ("H" with "[//] [$] [$]") as "H". iMod (fupd_mask_subseteq ∅) as "Hclo"; [set_solver+..|].
   do 4 iModIntro. iMod "Hclo". by iMod "H".
 Qed.
@@ -256,7 +256,7 @@ Proof.
   by iIntros (κ e' efs' σ g (_&?&?&->&?)%Hpuredet).
 Qed.
 
-Lemma wp_lift_pure_det_step_no_fork `{!Inhabited (state Λ), !Inhabited (global_state Λ)} {s E E' Φ} e1 e2 :
+Lemma wp_lift_pure_det_step_no_fork {f} `{Hgen: genInG Σ f} `{!Inhabited (state Λ), !Inhabited (global_state Λ)} {s E E' Φ} e1 e2 :
   (∀ σ1 g1, if s is NotStuck then reducible e1 σ1 g1 else to_val e1 = None) →
   (∀ σ1 g1 κ e2' σ2 g2 efs', prim_step e1 σ1 g1 κ e2' σ2 g2 efs' →
     κ = [] ∧ σ2 = σ1 ∧ g2 = g1 ∧ e2' = e2 ∧ efs' = []) →
@@ -283,7 +283,7 @@ Proof.
     by iApply "IH".
 Qed.
 
-Lemma wp_pure_step_fupd `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E E' e1 e2 φ n Φ :
+Lemma wp_pure_step_fupd {f} `{Hgen: genInG Σ f} `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E E' e1 e2 φ n Φ :
   PureExec φ n e1 e2 →
   φ →
   (|={E}[E']▷=>^n £ (n * f 1) -∗ ⧗ (n * f 1) -∗ WP e2 @ s; E {{ Φ }}) ⊢ WP e1 @ s; E {{ Φ }}.
@@ -303,7 +303,7 @@ Proof.
     iApply ("Hwp" with "[$] [$]").
 Qed.
 
-Lemma wp_pure_step_later `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E e1 e2 φ n Φ :
+Lemma wp_pure_step_later {f} `{Hgen: genInG Σ f} `{!Inhabited (state Λ), !Inhabited (global_state Λ)} s E e1 e2 φ n Φ :
   PureExec φ n e1 e2 →
   φ →
   ▷^n (£ (n * f 1) -∗ ⧗ (n * f 1) -∗ WP e2 @ s; E {{ Φ }}) ⊢ WP e1 @ s; E {{ Φ }}.

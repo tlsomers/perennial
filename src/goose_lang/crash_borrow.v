@@ -15,10 +15,6 @@ Context `{!ffi_interp ffi}.
 Context `{!gooseGlobalGS Σ, !gooseLocalGS Σ}.
 Context `{!stagedG Σ}.
 
-Global Instance later_tokG_heap : later_tokG (goose_irisGS).
-Proof.
-  split. intros. rewrite /f /=. lia.
-Qed.
 
 Lemma ownfCP_inf_le1 γ (q : Qp) (E : coPset) :
   ownfCP_inf γ q E -∗ ⌜ q ≤ 1 ⌝%Qp.

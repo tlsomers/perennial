@@ -24,7 +24,7 @@ Proof.
   iMod (credit_name_init) as (name_credit) "Htok".
   iMod (proph_map_init κs g.(used_proph_id)) as (proph_names) "Hproph".
 
-  set (hG := GooseGlobalGS _ _ _ proph_names (creditGS_update_pre _ _ name_credit) ffi_namesg).
+  set (hG := GooseGlobalGS _ _ _ proph_names (creditGS_update_pre _ _ name_credit) _ _ ffi_namesg).
 
   iExists global_state_interp, fork_post.
   (* iExists _, _. *)

@@ -13,39 +13,42 @@ Set Default Proof Mode "Classic".
 (** Classes that are used to tell [wp_pures] about steps it can take. *)
 Section classes.
 
-(* FIXME: add later credits *)
-Class PureWp `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}
-  φ (e : expr) (e' : expr) :=
-  pure_wp_wp : ∀ stk E Φ (H : φ) K,
-  ▷ (£ 1 -∗  WP (fill K e') @ stk ; E {{ Φ }}) -∗ WP (fill K e) @ stk; E {{ Φ }}.
+  Context `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}.
 
-Global Hint Mode PureWp - - - - - - - - ! - : typeclass_instances.
+  Local Instance : genInG Σ goose_linear_gen := goose_gen_linear.
 
-Lemma tac_wp_pure_wp `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}
-      K e1 {e2 φ} (Hwp:PureWp φ e1 e2) Δ Δ' s E Φ :
-  φ →
-  MaybeIntoLaterNEnvs 1 Δ Δ' →
-  envs_entails Δ' (WP (fill K e2) @ s; E {{ Φ }}) →
-  envs_entails Δ (WP (fill K e1) @ s; E {{ Φ }}).
-Proof.
-  rewrite envs_entails_unseal=> ?? HΔ'. rewrite into_laterN_env_sound /=.
-  rewrite HΔ'. iIntros "H". iApply Hwp; [done|iIntros "!# _ //"].
-Qed.
+  (* FIXME: add later credits *)
+  Class PureWp 
+    φ (e : expr) (e' : expr) :=
+    pure_wp_wp : ∀ stk E Φ (H : φ) K,
+    ▷ (£ 1 -∗  WP (fill K e') @ stk ; E {{ Φ }}) -∗ WP (fill K e) @ stk; E {{ Φ }}.
 
-Lemma tac_wp_pure_wp_later_credit `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}
-      K e1 {e2 φ} (Hwp:PureWp φ e1 e2) Δ Δ' s E Φ :
-  φ →
-  MaybeIntoLaterNEnvs 1 Δ Δ' →
-  envs_entails Δ' (£ 1 -∗ WP (fill K e2) @ s; E {{ Φ }}) →
-  envs_entails Δ (WP (fill K e1) @ s; E {{ Φ }}).
-Proof.
-  rewrite envs_entails_unseal=> ?? HΔ'. rewrite into_laterN_env_sound /=.
-  rewrite HΔ'. iIntros "H". by iApply Hwp.
-Qed.
+  Global Hint Mode PureWp - ! - : typeclass_instances.
+
+  Lemma tac_wp_pure_wp
+        K e1 {e2 φ} (Hwp:PureWp φ e1 e2) Δ Δ' s E Φ :
+    φ →
+    MaybeIntoLaterNEnvs 1 Δ Δ' →
+    envs_entails Δ' (WP (fill K e2) @ s; E {{ Φ }}) →
+    envs_entails Δ (WP (fill K e1) @ s; E {{ Φ }}).
+  Proof.
+    rewrite envs_entails_unseal=> ?? HΔ'. rewrite into_laterN_env_sound /=.
+    rewrite HΔ'. iIntros "H". iApply Hwp; [done|iIntros "!# _ //"].
+  Qed.
+
+  Lemma tac_wp_pure_wp_later_credit
+        K e1 {e2 φ} (Hwp:PureWp φ e1 e2) Δ Δ' s E Φ :
+    φ →
+    MaybeIntoLaterNEnvs 1 Δ Δ' →
+    envs_entails Δ' (£ 1 -∗ WP (fill K e2) @ s; E {{ Φ }}) →
+    envs_entails Δ (WP (fill K e1) @ s; E {{ Φ }}).
+  Proof.
+    rewrite envs_entails_unseal=> ?? HΔ'. rewrite into_laterN_env_sound /=.
+    rewrite HΔ'. iIntros "H". by iApply Hwp.
+  Qed.
 
 (* Now a few lemmas to help establish PureWp in other ways. *)
-Lemma pure_exec_pure_wp n
-  `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ} {φ e e'} :
+Lemma pure_exec_pure_wp n {φ e e'} :
   PureExec φ (S n) e e' → PureWp φ e e'.
 Proof.
   intros ??????.
@@ -56,7 +59,7 @@ Proof.
   by iApply "Hk".
 Qed.
 
-Lemma pure_wp_val `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}
+Lemma pure_wp_val
   φ (e : expr) (v' : val) :
   (∀ stk E Φ (H: φ),
      ▷ (£ 1 -∗  Φ v') -∗ WP e @ stk; E {{ Φ }}) →

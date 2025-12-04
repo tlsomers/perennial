@@ -16,7 +16,7 @@ Existing Instances pri_inv_tok_timeless.
 Section def.
 Context `{IRISG: !irisGS Λ Σ, !generationGS Λ Σ}.
 Context `{!pri_invG IRISG}.
-Context `{!later_tokG IRISG}.
+Context `{!later_tokG Σ}.
 Context `{!stagedG Σ}.
 
 Definition staged_value_inuse2 e E1' E1 mj mj_wp mj_ukeep Φ Φc P :=
@@ -43,7 +43,7 @@ End def.
 Section inv.
 Context `{IRISG: !irisGS Λ Σ, !generationGS Λ Σ}.
 Context `{!pri_invG IRISG}.
-Context `{!later_tokG IRISG}.
+Context `{!later_tokG Σ}.
 Context `{!stagedG Σ}.
 Implicit Types i : positive.
 Implicit Types N : namespace.

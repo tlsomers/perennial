@@ -6,10 +6,64 @@ From Perennial.goose_lang Require Export lang lifting ipersist tactics.
 Set Default Proof Using "Type".
 Import uPred.
 
-Lemma tac_wp_expr_eval `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ} Δ s E Φ e e' :
-  (∀ (e'':=e'), e = e'') →
-  envs_entails Δ (WP e' @ s; E {{ Φ }}) → envs_entails Δ (WP e @ s; E {{ Φ }}).
-Proof. by intros ->. Qed.
+Section step_tactics.
+
+  Context `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}.
+
+  Local Instance : genInG Σ goose_linear_gen := goose_gen_linear.
+
+  Lemma tac_wp_expr_eval  Δ s E Φ e e' :
+    (∀ (e'':=e'), e = e'') →
+    envs_entails Δ (WP e' @ s; E {{ Φ }}) → envs_entails Δ (WP e @ s; E {{ Φ }}).
+  Proof. by intros ->. Qed.
+  
+  (* Generates a later credit if passed Some name for it. The ability for this to
+    generate later credits is why it is separate from [tac_wp_pure_wp] below.
+  *)
+  Lemma tac_wp_pure
+        (Hcred : option string) K e1 Δ Δ' s E e2 φ n Φ :
+    PureExec φ n e1 e2 →
+    φ →
+    MaybeIntoLaterNEnvs n Δ Δ' →
+    (match Hcred with
+    | None => envs_entails Δ' (WP (fill K e2) @ s; E {{ Φ }})
+    | Some Hcred =>
+        match envs_app false (Esnoc Enil Hcred (£ n)) Δ' with
+        | None => False
+        | Some Δ' => envs_entails Δ' (WP (fill K e2) @ s; E {{ Φ }})
+        end
+    end) →
+    envs_entails Δ (WP (fill K e1) @ s; E {{ Φ }}).
+  Proof.
+    rewrite envs_entails_unseal=> ??? HΔ'. rewrite into_laterN_env_sound /=.
+    (* We want [pure_exec_fill] to be available to TC search locally. *)
+    pose proof @pure_exec_fill.
+    iIntros "Henv".
+    iApply (lifting.wp_pure_step_later with "[-]"); [done|].
+    iModIntro. iIntros "Hcred Htr".
+    destruct Hcred.
+    - destruct (envs_app _) eqn:Henv.
+      + rewrite -HΔ'. rewrite envs_app_singleton_sound; [|done]. iApply ("Henv").
+        iApply (lc_weaken n with "[$]"). simpl; lia.
+      + done.
+    - rewrite -HΔ'. done.
+  Qed.
+
+  Lemma tac_wp_value_noncfupd Δ s E Φ v :
+    envs_entails Δ (Φ v) → envs_entails Δ (WP (Val v) @ s; E {{ Φ }}).
+  Proof. rewrite envs_entails_unseal=> ->. by apply wp_value. Qed.
+  Lemma tac_wp_value_fupd Δ s E Φ v :
+    envs_entails Δ (|NC={E}=> Φ v) → envs_entails Δ (WP (Val v) @ s; E {{ v, |={E}=> Φ v }})%I.
+  Proof.
+    rewrite envs_entails_unseal=> ->. rewrite wp_value_fupd.
+    iIntros "H".
+    iApply (wp_wand with "H"); auto.
+  Qed.
+  Lemma tac_wp_value Δ s E Φ v :
+    envs_entails Δ (|NC={E}=> Φ v) → envs_entails Δ (WP (Val v) @ s; E {{ Φ }}).
+  Proof. rewrite envs_entails_unseal=> ->. rewrite wp_value_fupd //. Qed.
+
+End step_tactics.
 
 Tactic Notation "wp_expr_eval" tactic(t) :=
   iStartProof;
@@ -20,51 +74,6 @@ Tactic Notation "wp_expr_eval" tactic(t) :=
   | _ => fail "wp_expr_eval: not a 'wp'"
   end.
 
-(* Generates a later credit if passed Some name for it. The ability for this to
-   generate later credits is why it is separate from [tac_wp_pure_wp] below.
- *)
-Lemma tac_wp_pure `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ}
-      (Hcred : option string) K e1 Δ Δ' s E e2 φ n Φ :
-  PureExec φ n e1 e2 →
-  φ →
-  MaybeIntoLaterNEnvs n Δ Δ' →
-  (match Hcred with
-   | None => envs_entails Δ' (WP (fill K e2) @ s; E {{ Φ }})
-   | Some Hcred =>
-       match envs_app false (Esnoc Enil Hcred (£ n)) Δ' with
-       | None => False
-       | Some Δ' => envs_entails Δ' (WP (fill K e2) @ s; E {{ Φ }})
-       end
-   end) →
-  envs_entails Δ (WP (fill K e1) @ s; E {{ Φ }}).
-Proof.
-  rewrite envs_entails_unseal=> ??? HΔ'. rewrite into_laterN_env_sound /=.
-  (* We want [pure_exec_fill] to be available to TC search locally. *)
-  pose proof @pure_exec_fill.
-  iIntros "Henv".
-  iApply (lifting.wp_pure_step_later with "[-]"); [done|].
-  iModIntro. iIntros "Hcred Htr".
-  destruct Hcred.
-  - destruct (envs_app _) eqn:Henv.
-    + rewrite -HΔ'. rewrite envs_app_singleton_sound; [|done]. iApply ("Henv").
-      iApply (lc_weaken n with "[$]"). simpl; lia.
-    + done.
-  - rewrite -HΔ'. done.
-Qed.
-
-Lemma tac_wp_value_noncfupd `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ} Δ s E Φ v :
-  envs_entails Δ (Φ v) → envs_entails Δ (WP (Val v) @ s; E {{ Φ }}).
-Proof. rewrite envs_entails_unseal=> ->. by apply wp_value. Qed.
-Lemma tac_wp_value_fupd `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ} Δ s E Φ v :
-  envs_entails Δ (|NC={E}=> Φ v) → envs_entails Δ (WP (Val v) @ s; E {{ v, |={E}=> Φ v }})%I.
-Proof.
-  rewrite envs_entails_unseal=> ->. rewrite wp_value_fupd.
-  iIntros "H".
-  iApply (wp_wand with "H"); auto.
-Qed.
-Lemma tac_wp_value `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!gooseGlobalGS Σ, !gooseLocalGS Σ} Δ s E Φ v :
-  envs_entails Δ (|NC={E}=> Φ v) → envs_entails Δ (WP (Val v) @ s; E {{ Φ }}).
-Proof. rewrite envs_entails_unseal=> ->. rewrite wp_value_fupd //. Qed.
 
 Ltac wp_expr_simpl := wp_expr_eval simpl.
 
