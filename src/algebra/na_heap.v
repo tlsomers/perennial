@@ -1,7 +1,7 @@
 From stdpp Require Export namespaces.
 From stdpp Require Import coPset.
 From iris.algebra Require Import big_op gmap frac agree reservation_map.
-From iris.algebra Require Export dfrac.
+From iris.algebra Require Export dfrac stepindex_finite.
 From iris.algebra Require Import csum excl auth cmra_big_op numbers lib.gmap_view.
 From iris.bi Require Import fractional.
 From Perennial.base_logic Require Export lib.own.

@@ -1,4 +1,5 @@
 From Perennial.program_proof.rsm.distx Require Import prelude.
+From Perennial.program_proof.mvcc Require Import mvcc_misc.
 
 Lemma conflict_past_inv_linearize_abort {past future tmodas} ts form :
   conflict_cases past future ts form ->
