@@ -23,28 +23,28 @@ Theorem goose_recv_adequacy `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} {Hffi_a
   recv_adequate (CS := goose_crash_lang) s e r σ g (λ v _ _, φ v) (λ v _ _, φr v) (λ σ _, φinv σ).
 Proof.
   intros Hinit Hinitg Hwp.
-  eapply (wp_recv_adequacy_inv Σ _ _ (n * 4 + crash_borrow_ginv_number)).
-  iIntros (???).
+  eapply (wp_recv_adequacy_inv Σ _ _ _ _ _ _ _ _ _ _ _).
+  iIntros (????) "H⧗£".
+  iAssert (later_tokN (_ + _)) with "[H⧗£]" as "[Htoks1 Htoks2]".
+  { rewrite later_res.later_tokN_unseal /later_tokN_def. iFrame. }
+
   iMod (na_heap_name_init tls σ.(heap)) as (name_na_heap) "Hh".
   iMod (ffi_global_init _ _ g.(global_world)) as (ffi_namesg) "(Hgw&Hgstart)"; first by eauto.
   iMod (ffi_local_init _ _ σ.(world)) as (ffi_names) "(Hw&Hstart)"; first by eauto.
   iMod (trace_name_init σ.(trace) σ.(oracle)) as (name_trace) "(Htr&Htrfrag&Hor&Hofrag)".
   iMod (globals_name_init _ σ.(globals)) as (globals_name) "(Hg & Hgfrag)".
-  iMod (credit_name_init (n*4 + crash_borrow_ginv_number)) as (name_credit) "(Hcred_auth&Hcred&Htok)".
-  iDestruct (cred_frag_split with "Hcred") as "(Hpre&Hcred)".
+  iMod (credit_name_init) as (name_credit) "Htok".
   iMod (proph_map_init κs g.(used_proph_id)) as (proph_names) "Hproph".
 
-  iAssert (|={⊤}=> crash_borrow_ginv)%I with "[Hcred]" as ">#Hinv".
-  { rewrite /crash_borrow_ginv. iApply (inv_alloc _). iNext. eauto. }
+  iAssert (|={⊤}=> crash_borrow_ginv)%I with "[Htoks1]" as ">#Hinv".
+  { rewrite /crash_borrow_ginv. by iApply (inv_alloc _). }
   (* TODO(RJ): reformulate init lemmas to better match what we need here. *)
-  set (hG := GooseGlobalGS _ _ proph_names (creditGS_update_pre _ _ name_credit) ffi_namesg).
+  set (hG := GooseGlobalGS _ _ _ proph_names (creditGS_update_pre _ _ name_credit) ffi_namesg).
   set (hL := GooseLocalGS Σ Hc ffi_names (na_heapGS_update_pre _ name_na_heap) (traceGS_update_pre Σ _ name_trace)
                           (globalsGS_update_pre Σ _ globals_name)).
   destruct (Hwp (HeapGS _ hG hL)) as [Φinv Hwp']. clear Hwp.
   iExists state_interp, global_state_interp, fork_post.
-  iExists _, _.
   iExists ((λ Hinv hGen, ∃ hL:gooseLocalGS Σ, ⌜hGen = goose_generationGS (L:=hL)⌝ ∗ Φinv (HeapGS _ _ hL)))%I.
-  iDestruct (@cred_frag_to_pre_borrowN _ _ _ _ _ hG n with "Hpre") as "Hpre".
   iMod (Hwp' with "[$] [$] [$] [$] [$] [$]") as "(#H1&#H2&Hwp)".
   iModIntro.
   iSplitR.

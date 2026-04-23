@@ -43,6 +43,7 @@ Class gooseGpreS `{ext: ffi_syntax} `{EXT_SEM: !ffi_semantics ext ffi}
       `{INTERP: !ffi_interp ffi} `{!ffi_interp_adequacy} Σ
   := GooseGpreS {
   #[global] goose_preG_iris :: invGpreS Σ;
+  #[global] goose_preG_tr :: trGpreS Σ;
   #[global] goose_preG_crash :: crashGpreS Σ;
   #[global] goose_preG_heap :: na_heapGpreS loc val Σ;
   #[global] goose_preG_proph :: proph_mapGpreS proph_id val Σ;
@@ -70,7 +71,7 @@ Ltac solve_inG_deep :=
                            end; intros; try done; split; assumption || by apply _.
 
 Definition heapΣ `{ext: ffi_syntax} `{ffi_interp_adequacy} : gFunctors :=
-  #[invΣ; crashΣ; na_heapΣ loc val; proph_mapΣ proph_id val; ffiΣ; traceΣ; creditΣ; globalsΣ].
+  #[invΣ; trΣ; crashΣ; na_heapΣ loc val; proph_mapΣ proph_id val; ffiΣ; traceΣ; creditΣ; globalsΣ].
 #[global]
 Instance subG_heapPreG `{ext: ffi_syntax} `{@ffi_interp_adequacy ffi Hinterp ext EXT} {Σ} :
   subG heapΣ Σ → gooseGpreS Σ.

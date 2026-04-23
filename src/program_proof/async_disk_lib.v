@@ -355,7 +355,7 @@ Proof.
   iLöb as "IH".
   wp_bind (ExternalOp _ _).
   iApply ectx_lifting.wp_lift_base_step_nc; first by auto.
-  iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hd&Htr) Hg".
+  iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hd&Htr) Hg".
   iApply (ncfupd_mask_intro); first set_solver+. iIntros "Hclo".
   cbv [ffi_local_ctx disk_interp].
   iSplit.
@@ -370,7 +370,7 @@ Proof.
       repeat (monad_simpl; cbn).
       rewrite decide_False //. repeat (monad_simpl; cbn).
   }
-  iNext; iIntros (v2 σ2 g2 efs Hstep).
+  iIntros (v2 σ2 g2 efs Hstep) "!>".
   apply base_step_atomic_inv in Hstep; [ | by inversion 1 ].
   inv_base_step.
   monad_inv.
@@ -386,16 +386,12 @@ Proof.
       iPureIntro. eapply Ha in Hlook. eauto.
     }
     monad_inv.
-    iMod (global_state_interp_le with "Hg") as "$".
-    { apply step_count_next_incr. }
-    iFrame. rewrite big_sepL_nil right_id.
+    iFrame "Hg". simpl. iFrame.
     iMod ("Hclo'" with "[$Hm //]") as "HΦ".
     iFrame. iApply wp_value. iApply ("HΦ" with "[-]").
     simpl. iFrame.
   - monad_inv.
-    iMod (global_state_interp_le with "Hg") as "$".
-    { apply step_count_next_incr. }
-    iFrame. rewrite big_sepL_nil right_id.
+    iFrame "Hg". simpl. iFrame.
     iApply ("IH" with "[$] [$]").
   Qed.
 
@@ -615,7 +611,7 @@ Proof.
   iApply wpc_lift_base_step_fupd; first by auto.
   iSplit; last first.
   { iModIntro. iLeft in "HΦ". iApply "HΦ". eauto. }
-  iIntros (σ1 g1 ns mj D κ κs nt) "(Hσ&Hd'&Htr) Hg".
+  iIntros (σ1 g1 mj D κ κs nt) "(Hσ&Hd'&Htr) Hg".
   iApply (fupd_mask_intro); first set_solver+. iIntros "Hclo".
   cbv [ffi_local_ctx disk_interp].
   iSplit.
@@ -637,8 +633,6 @@ Proof.
   iMod "Hclo". iIntros.
   destruct (decide (all_synced _)) as [Ha|Hna].
   - monad_inv.
-    iMod (global_state_interp_le with "Hg") as "$".
-    { apply step_count_next_incr. }
     iAssert (⌜ (∀ k bs, m !! k = Some bs → fst bs = snd bs) ⌝)%I with "[-]" as "%Hsynced".
     {
       iIntros (k bs Hin).
@@ -646,15 +640,13 @@ Proof.
       iDestruct (gen_heap.gen_heap_valid with "[$] [$]") as %Hlook.
       iPureIntro. eapply Ha in Hlook. eauto.
     }
-    iFrame. rewrite big_sepL_nil right_id.
+    iFrame "Hg". simpl. iFrame.
     iApply wpc_value.
     iModIntro. iSplit.
     * iFrame. iApply ("HΦ" with "[-]"). iFrame. eauto.
     * iLeft in "HΦ". iModIntro. iApply ("HΦ" with "[-]"). iFrame.
   - monad_inv.
-    iMod (global_state_interp_le with "Hg") as "$".
-    { apply step_count_next_incr. }
-    iFrame. rewrite big_sepL_nil right_id.
+    iFrame "Hg". simpl. iFrame.
     iApply ("IH" with "[$] [$]").
   Qed.
 

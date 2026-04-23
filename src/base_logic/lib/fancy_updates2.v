@@ -82,29 +82,10 @@ Proof.
 Qed.
 
 (* Might need to include empty in defin of fancy_updates *)
-(*
-Lemma fupd2_fupd E1 E2 P : (||={E1 | ∅,E2 | ∅}=> P) ⊢ |={E1,E2}=> P.
-Proof.
-  rewrite ?uPred_fupd2_eq ?uPred_fupd_eq /uPred_fupd2_def/uPred_fupd_def.
-  rewrite /MaybeEn2.
-  rewrite /coPset_inr/coPset_inl.
-Abort.
-*)
 
-Lemma fupd_fupd2 E1a E2a Eb P : (|={E1a,E2a}=> P) ⊢ ||={E1a | Eb,E2a | Eb}=> P.
+Lemma fupd_fupd2_emp E1 E2 P : (||={E1 | ∅,E2 | ∅}=> P) ⊣⊢ |={E1,E2}=> P.
 Proof.
-  rewrite ?uPred_fupd2_eq ?uPred_fupd_eq /uPred_fupd2_def/uPred_fupd_def.
-  rewrite ownE_op; last auto.
-  rewrite ownE_op; last auto.
-  rewrite ownE_op; last first.
-  { apply disjoint_union_l; split; auto. }
-  rewrite ownE_op; last auto.
-  rewrite ownE_op; last first.
-  { apply disjoint_union_l; split; auto. }
-  rewrite ownE_op; last auto.
-  iIntros "H (Hw&((Hae&He1)&He2))".
-  iMod ("H" with "[$]") as ">($&($&$))".
-  eauto.
+  rewrite ?uPred_fupd2_eq ?uPred_fupd_eq /uPred_fupd2_def /uPred_fupd_def !MaybeEn2_empty !right_id_L //.
 Qed.
 
 Lemma fupd2_trans E1a E1b E2a E2b E3a E3b P :
@@ -204,6 +185,13 @@ Proof.
   rewrite fupd2_trans.
   replace (E1a ∪ Ea ∖ E1a) with Ea by (by apply union_difference_L).
   replace (E1b ∪ Eb ∖ E1b) with Eb by (by apply union_difference_L). auto.
+Qed.
+
+Lemma fupd_fupd2 E1a E2a Eb P : (|={E1a,E2a}=> P) ⊢ ||={E1a | Eb,E2a | Eb}=> P.
+Proof.
+  iIntros "H". rewrite -fupd_fupd2_emp.
+  iDestruct (fupd2_mask_frame_r _ _ _ _ ∅ Eb with "H") as "H"; [set_solver..|].
+  rewrite !left_id_L !right_id_L //.
 Qed.
 
 Global Instance into_wand_fupd2 Ea Eb p q R P Q :
@@ -342,18 +330,46 @@ Lemma fupd2_forall E1 E1' E2 E2' A (Φ : A → _) :
   (||={E1|E1', E2|E2'}=> ∀ x : A, Φ x) ⊢ ∀ x : A, ||={E1|E1', E2|E2'}=> Φ x.
 Proof. apply forall_intro=> a. by rewrite -(forall_elim a). Qed.
 
+Lemma lc_fupd2_elim_later E D P :
+   £1 -∗ (▷ P) -∗ ||={E|D,E|D}=> P.
+Proof.
+  iIntros "Hf Hupd".
+  iApply fupd_fupd2.
+  iApply (lc_fupd_elim_later with "Hf Hupd").
+Qed.
+
+(** If the goal is a fancy update, this lemma can be used to make a later appear
+  in front of it in exchange for a later credit.
+  This is typically used as [iApply (lc_fupd_add_later with "Hcredit")],
+  where ["Hcredit"] is a credit available in the context. *)
+Lemma lc_fupd2_add_later E1 D1 E2 D2 P :
+  £1 -∗ (▷ ||={E1|D1, E2|D2}=> P) -∗ ||={E1|D1, E2|D2}=> P.
+Proof.
+  iIntros "Hf Hupd". iApply (fupd2_trans E1 D1 E1 D1).
+  iApply (lc_fupd2_elim_later with "Hf Hupd").
+Qed.
+
+Lemma lc_fupd2_add_laterN n E1 D1 E2 D2 P :
+  £ n -∗ (▷^n ||={E1|D1, E2|D2}=> P) -∗ ||={E1|D1, E2|D2}=> P.
+Proof.
+  iInduction n as [|n IH] forall (P); simpl.
+  - iIntros "_ $ //".
+  - iIntros "[Hlc Hf] Hupd". iApply (lc_fupd2_add_later with "Hlc").
+    iNext. iApply ("IH" with "Hf Hupd").
+Qed.
+
 End fupd2.
 
 Local Existing Instance inv_lcPreG.
 
-Lemma fupd2_soundness `{!invGpreS Σ} n E1 E1' E2 E2' (φ : Prop) :
-  (∀ `{Hinv: !invGS Σ}, £ n ⊢ ||={E1|E1',E2|E2'}=> ⌜φ⌝) → φ.
+Lemma fupd2_soundness `{!invGpreS Σ} n E1 E1' E2 E2' P `{!Plain P} :
+  (∀ `{Hinv: !invGS Σ}, £ n ⊢ ||={E1|E1',E2|E2'}=> P) → ⊢ P.
 Proof.
-  iIntros (Hfupd). eapply pure_soundness.
+  iIntros (Hfupd).
   eapply (lc_soundness (Σ:=Σ) (S n)); first tc_solve. intros Hc. rewrite lc_succ.
   iIntros "[Hone Hn]". rewrite -le_upd_trans. iApply bupd_le_upd.
   iMod wsat_alloc as (Hinv ->) "[Hw HE]".
-  iAssert (||={⊤|⊤,E2|E2'}=> ⌜φ⌝)%I with "[Hn]" as "H".
+  iAssert (||={⊤|⊤,E2|E2'}=> P)%I with "[Hn]" as "H".
   { iMod (fupd2_mask_subseteq E1 E1') as "_"; [done..|]. by iApply (Hfupd _). }
   rewrite uPred_fupd2_eq /uPred_fupd2_def.
   iModIntro. iMod ("H" with "[$Hw HE]") as "[Hw [HE H']]".

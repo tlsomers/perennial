@@ -43,10 +43,11 @@ Proof.
   pose proof @pure_exec_fill.
   iIntros "Henv".
   iApply (lifting.wp_pure_step_later with "[-]"); [done|].
-  iModIntro. iIntros "Hcred".
+  iModIntro. iIntros "Hcred Htr".
   destruct Hcred.
   - destruct (envs_app _) eqn:Henv.
-    + rewrite -HΔ'. rewrite envs_app_singleton_sound; [|done]. by iApply "Henv".
+    + rewrite -HΔ'. rewrite envs_app_singleton_sound; [|done]. iApply ("Henv").
+      iApply (lc_weaken n with "[$]"). simpl; lia.
     + done.
   - rewrite -HΔ'. done.
 Qed.
