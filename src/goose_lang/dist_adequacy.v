@@ -18,26 +18,26 @@ Theorem goose_dist_adequacy `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} {Hffi_a
   dist_adequate (CS := goose_crash_lang) ebσs g (λ g, φinv g).
 Proof.
   intros Hwp.
-  eapply (wpd_dist_adequacy_inv Σ _ _ _ _ _ _ _ (λ n, 10 * (n + 1))%nat).
-  iIntros (Hinv ?) "".
+  eapply (wpd_dist_adequacy_inv Σ _ _ _ _ _).
+  iIntros (Hinv ??) "Hntr Hlc".
   iMod (ffi_global_init _ _ g.(global_world)) as (ffi_namesg) "(Hgw&Hgstart)"; first by auto.
-  iMod (credit_name_init (crash_borrow_ginv_number)) as (name_credit) "(Hcred_auth&Hcred&Htok)".
+  iMod (credit_name_init) as (name_credit) "Htok".
   iMod (proph_map_init κs g.(used_proph_id)) as (proph_names) "Hproph".
 
-  set (hG := GooseGlobalGS _ _ proph_names (creditGS_update_pre _ _ name_credit) ffi_namesg).
+  set (hG := GooseGlobalGS _ _ _ proph_names (creditGS_update_pre _ _ name_credit) ffi_namesg).
 
   iExists global_state_interp, fork_post.
-  iExists _, _.
+  (* iExists _, _. *)
 
   iMod (Hwp hG with "[$]") as "(Hwp&Hφ)".
 
-  iAssert (|={⊤}=> crash_borrow_ginv)%I with "[Hcred]" as ">Hinv".
-  { rewrite /crash_borrow_ginv. iApply (inv_alloc _). iNext. eauto. }
+  iAssert (|={⊤}=> crash_borrow_ginv)%I with "[Hntr Hlc]" as ">Hinv".
+  { rewrite /crash_borrow_ginv. iApply (inv_alloc _). iNext. rewrite later_res.later_tokN_unseal. iFrame. }
   iModIntro.
-  iFrame "Hgw Hinv Hcred_auth Htok Hproph".
+  iFrame "Hgw Hinv Htok Hproph".
   iSplitR; first by eauto.
   iSplitL "Hwp"; last first.
-  { iIntros (???) "Hσ".
+  { iIntros (??) "Hσ".
     iApply ("Hφ" with "[Hσ]").
     iDestruct "Hσ" as "($&_)".
   }

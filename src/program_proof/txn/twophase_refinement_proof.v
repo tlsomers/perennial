@@ -33,8 +33,6 @@ Proof.
   auto with f_equal lia.
 Qed.
 
-Opaque crash_borrow.pre_borrow.
-
 Lemma jrnl_init_obligation1: sty_init_obligation1 (twophaseTy_update_model JRNL_KIND_SIZE) (twophase_initP JRNL_KIND_SIZE).
 Proof.
   rewrite /sty_init_obligation1//=.
@@ -64,7 +62,7 @@ Proof.
   iDestruct "H" as (γ) "(%Hγ&His_txn_durable&#Hlb&Hipointstos)".
   iExists tt, γ, _, _, (recovery_proof.kind_heap0 kinds).
   iFrame "His_txn_durable".
-  iModIntro.
+  iModIntro. rewrite /crash_borrow.pre_borrowN.
   iDestruct "Hpre" as "($&Hpre)".
   rewrite -?sep_assoc.
   iSplit.
