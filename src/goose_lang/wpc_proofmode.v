@@ -15,15 +15,13 @@ Proof.
   iIntros "He HΦ". iApply wpc_lift_base_step; [done|].
   iSplit; last first.
   {  iDestruct "HΦ" as "(HΦc&_)". eauto. }
-  iIntros (σ1 g1 ns mj D κ κs n) "Hσ Hg".
+  iIntros (σ1 g1 mj D κ κs n) "Hσ Hg".
   iMod (fupd_mask_subseteq ∅) as "Hclose"; first by set_solver+.
   iModIntro. iNext. iSplit.
   { iPureIntro; econstructor; do 4 eexists. constructor. constructor. eauto. }
    iIntros (v2 σ2 g2 efs Hstep). apply base_step_atomic_inv in Hstep; [ | by inversion 1 ]. rewrite /base_step /= in Hstep.
   inversion Hstep as [??? Heq]. inversion Heq; subst.
   iMod "Hclose". iFrame.
-  iMod (global_state_interp_le with "Hg") as "$".
-  { apply step_count_next_incr. }
   iModIntro => //=. rewrite right_id.
   iApply wpc_value; iSplit.
   - by iDestruct "HΦ" as "(_&$)".
