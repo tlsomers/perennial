@@ -3,6 +3,8 @@ From Perennial.program_proof.tulip.program Require Import prelude.
 From Perennial.program_proof.tulip.program.txn Require Import
   res txn_repr txn_begin txn_attach txn_cancel txn_prepare
   txn_reset txn_abort txn_commit.
+From Perennial.program_proof.mvcc Require Import mvcc_misc.
+
 
 Section program.
   Context `{!heapGS Σ, !tulip_ghostG Σ}.

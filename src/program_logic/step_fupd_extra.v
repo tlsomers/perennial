@@ -1,4 +1,5 @@
 From iris.proofmode Require Import base tactics classes.
+From iris.base_logic.lib Require Export physical_step.
 From Perennial.base_logic Require Export invariants fancy_updates2.
 Set Default Proof Using "Type".
 Import uPred.
@@ -355,6 +356,13 @@ Proof.
   iIntros. iApply step_fupd2_intro; auto. iNext. by iApply IHle.
 Qed.
 
+Lemma step_fupd2N_intro (n : nat) P :
+  ▷^n P ⊢ ||▷=>^n P.
+Proof.
+  induction n => //=.
+  iIntros. iApply step_fupd2_intro; auto. iNext. by iApply IHn.
+Qed.
+
 Lemma step_fupd2N_inner_wand E1a E1b E2a E2b k1 k2 P Q:
   E2a ⊆ E1a →
   E2b ⊆ E1b →
@@ -373,10 +381,9 @@ Proof.
 Qed.
 
 Lemma step_fupdN_step_fupd2N k P :
-  (|={∅}▷=>^k P) ⊢ ||▷=>^k P.
+  (|={∅}▷=>^k P) ⊣⊢ ||▷=>^k P.
 Proof.
-  induction k => //=.
-  iIntros "H". iMod "H". iModIntro. iNext. iMod "H". iModIntro. by iApply IHk.
+  induction k => //=. rewrite !fupd_fupd2_emp. do 3 f_equiv. apply IHk. 
 Qed.
 
 Lemma step_fupd2N_inner_le k1 k2 E1a E1b E2a E2b P:
@@ -416,6 +423,14 @@ Proof.
     iIntros ">H". iModIntro. iNext. iMod "H". auto.
 Qed.
 
+Lemma step_fupd2N_S_fupd2_l n P :
+  (||={∅|∅,∅|∅}=> ||▷=>^(S n) P) ⊣⊢ (||▷=>^(S n) P).
+Proof.
+  apply (anti_symm (⊢)); rewrite !Nat.iter_succ.
+  - iIntros "H". by iMod "H".
+  - iIntros "H". by iModIntro.
+Qed.
+
 Lemma step_fupd2N_fupd2 n P :
   n > 0 →
   (||▷=>^n ||={∅|∅,∅|∅}=> P) ⊢ (||▷=>^n P).
@@ -444,16 +459,30 @@ Qed.
 
 End step_fupd2.
 
-Lemma step_fupd2N_soundness `{!invGpreS Σ} n m φ :
-  (∀ `{Hinv: !invGS Σ}, £ m ⊢@{iPropI Σ} ||={⊤|⊤,∅|∅}=> ||▷=>^n ⌜ φ ⌝) →
-  φ.
+Lemma step_fupd2N_soundness `{!invGpreS Σ} n m P `{!Plain P} :
+  (∀ `{Hinv: !invGS Σ}, £ m ⊢@{iPropI Σ} ||={⊤|⊤,∅|∅}=> ||▷=>^n P) →
+  ⊢ P.
 Proof.
-  intros Hiter. eapply (fupd2_soundness (m+n)).
+  intros Hiter. eapply (fupd2_soundness (m+n)); first done.
   intros Hinv. iIntros "[Hm Hn]".
   iMod (Hiter with "Hm") as "Hupd". clear Hiter.
   iInduction n as [|n] "IH"; simpl.
-  - iModIntro. done. 
+  - iModIntro. done.
   - rewrite lc_succ. iDestruct "Hn" as "[Hone Hn]".
     iMod "Hupd". iMod (lc_fupd_elim_later with "Hone Hupd") as "> Hupd".
     by iApply ("IH" with "Hn Hupd").
+Qed.
+
+Lemma physical_stepN_soundness `{!invGpreS Σ, !trGpreS Σ, !tr_generation} (P : iProp Σ) `{!Plain P} n k :
+    (∀ {Hinv : invGS Σ} {Htr: trGS Σ}, ⧗ n ∗ £ n ⊢ ||={⊤|⊤, ⊤|∅}=> |={⊤}⧗=>^k ||={⊤|∅, ∅|∅}=> P) → ⊢ P.
+Proof.
+  intros HP.
+  eapply (step_fupd2N_soundness _ _ _).
+  iIntros (Hinv) "[H£ H£']".
+  iMod (tr_supply_alloc n) as "(%Htr & Hsup & H⧗)".
+  iDestruct (HP with "[$]") as ">HP".
+  iDestruct (physical_stepN_soundness_local with "[$] [$] [$]") as ">HP'".
+  rewrite -step_fupdN_step_fupd2N. iApply fupd_fupd2.
+  iApply step_fupdN_fupd_swap. iApply (step_fupdN_wand with "[$]").
+  rewrite !fupd_fupd2_emp. iIntros "[_ >>$] //".
 Qed.

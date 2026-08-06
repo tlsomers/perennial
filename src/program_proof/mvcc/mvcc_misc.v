@@ -244,6 +244,16 @@ Proof.
   rewrite !big_sepM2_alt !persistent_and_affinely_sep_l.
   etrans; [| by apply bupd_frame_l]. apply sep_mono_r. apply big_sepM_bupd.
 Qed.
+Lemma big_sepM2_fupd
+      `{BiFUpd PROP} {A B : Type} E `{Countable K}
+      (Φ : K → A -> B → PROP) (m1 : gmap K A) (m2 : gmap K B) :
+  ([∗ map] k↦x;y ∈ m1;m2, |={E}=> Φ k x y) ⊢@{_} |={E}=> [∗ map] k↦x;y ∈ m1;m2, Φ k x y.
+Proof.
+  (* Q: What does [!] do? *)
+  rewrite !big_sepM2_alt !persistent_and_affinely_sep_l.
+  etrans; [| by apply fupd_frame_l]. apply sep_mono_r. apply big_sepM_fupd.
+Qed.
+
 
 (* [big_sepM2_dom] is used for something else. *)
 Lemma big_sepM2_dom'

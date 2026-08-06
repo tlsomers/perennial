@@ -48,10 +48,9 @@ Proof.
   - fold (wpc_crash_modality E mj Φc).
     iSplit; last first.
     { iDestruct "H" as "[_ $]". }
-    iIntros (q g ns D κs) "Hinterp NC".
+    iIntros (q g D κs) "Hinterp NC".
     iDestruct (bi_and_forall_l_apply q with "H") as "H".
     iDestruct (bi_and_forall_l_apply g with "H") as "H".
-    iDestruct (bi_and_forall_l_apply ns with "H") as "H".
     iDestruct (bi_and_forall_l_apply D with "H") as "H".
     iDestruct (bi_and_forall_l_apply κs with "H") as "H".
     iDestruct (bi_and_wand_l_apply with "H Hinterp") as "H".

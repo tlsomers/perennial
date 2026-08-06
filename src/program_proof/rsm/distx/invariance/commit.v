@@ -1,4 +1,5 @@
 From Perennial.program_proof.rsm.distx Require Import prelude.
+From Perennial.program_proof.mvcc Require Import mvcc_misc.
 
 Lemma lookup_resm_to_tmods_Some resm ts wrs :
   resm_to_tmods resm !! ts = Some wrs ↔
